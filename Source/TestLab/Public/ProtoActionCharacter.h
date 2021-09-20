@@ -112,6 +112,8 @@ protected:
 	void CheckBackwardLeft(const FCollisionQueryParams& Params);
 	void DoWallTrace(const FCollisionQueryParams& Params, const FVector& TraceDirection);
 	bool bTraceInfoCached;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
+	float VelocityCachedTimeLength;
 	FTimerHandle TimerHandle_ResetCachedVelocity;
 	void ResetCachedInfo() { bTraceInfoCached = false; }
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Player")

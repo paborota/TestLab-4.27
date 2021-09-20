@@ -33,6 +33,7 @@ AProtoActionCharacter::AProtoActionCharacter()
 	WallCheckDistance = 65.0f;
 	bCanWallJump = false;
 	bTraceInfoCached = false;
+	VelocityCachedTimeLength = .3f;
 	WallJumpVelocityUp = 450.0f;
 	WallJumpVelocityAwayMultiplier = 1.0f;
 
@@ -403,7 +404,7 @@ void AProtoActionCharacter::DoWallTrace(const FCollisionQueryParams& Params, con
 			VelocityDirection = GetCharacterMovement()->Velocity;
 			VelocityDirection.Z = 0.0f;
 			bTraceInfoCached = true;
-			GetWorldTimerManager().SetTimer(TimerHandle_ResetCachedVelocity, this, &AProtoActionCharacter::ResetCachedInfo, 0.1f);
+			GetWorldTimerManager().SetTimer(TimerHandle_ResetCachedVelocity, this, &AProtoActionCharacter::ResetCachedInfo, VelocityCachedTimeLength);
 			UE_LOG(LogTemp, Log, TEXT("Info Cached."));
 			return;
 		}
