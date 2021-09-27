@@ -4,6 +4,7 @@
 #include "ProtoActionCharacter.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 AProtoActionCharacter::AProtoActionCharacter()
@@ -33,11 +34,11 @@ AProtoActionCharacter::AProtoActionCharacter()
 	WallCheckDistance = 65.0f;
 	bCanWallJump = false;
 	bTraceInfoCached = false;
-	VelocityCachedTimeLength = .3f;
-	WallJumpVelocityUp = 450.0f;
-	WallJumpVelocityAwayMultiplier = 1.0f;
+	VelocityCachedTimeLength = .45f;
+	WallJumpVelocityUp = 500.0f;
+	WallJumpVelocityAwayMultiplier = 1.1f;
 
-	DashVelocity = 4000.0f;
+	DashVelocity = 5000.0f;
 	DashTimeLength = .2f;
 	bDashedRecently = false;
 	DoubleJumpVelocity = 600.0f;
@@ -154,7 +155,7 @@ void AProtoActionCharacter::WallJump()
 	CalcWallJumpVelocity(LaunchVelocity);
 
 	// Make sure velocity does not exceed the max sprint speed too greatly
-	LaunchVelocity = LaunchVelocity.GetClampedToMaxSize(MaxSprintSpeed * 1.5);
+	LaunchVelocity = LaunchVelocity.GetClampedToMaxSize(MaxSprintSpeed * 1.8f);
 	LaunchCharacter(LaunchVelocity, true, true);
 
 	// Reset everything
@@ -164,30 +165,69 @@ void AProtoActionCharacter::WallJump()
 	bUsedDoubleJump = false;
 }
 
-void AProtoActionCharacter::CalcWallJumpVelocity(FVector& LaunchVelocity) const
+void AProtoActionCharacter::CalcWallJumpVelocity(FVector& LaunchVelocity)
 {
-	FVector VelocityDirectionNormalized = VelocityDirection;
-	VelocityDirectionNormalized.Normalize();
+	CalcWallJumpDirectionAfterRotation(LaunchVelocity);
+	CalcVelocity(LaunchVelocity);
+	UE_LOG(LogTemp, Warning, TEXT("%f"), GetCharacterMovement()->Velocity.Size());
+}
+
+void AProtoActionCharacter::CalcWallJumpDirectionAfterRotation(FVector& LaunchVelocity)
+{
+	const FVector VelocityDirectionNormalized = VelocityDirection.GetSafeNormal();
+
+	FVector DirectionReflected = VelocityDirectionNormalized - 2.0f * (FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection)) * WallJumpDirection;
+
+	// UE_LOG(LogTemp, Warning, TEXT("%s : %s"), *VelocityDirectionNormalized.ToString(), *DirectionReflected.ToString());
+
+	//FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(GetActorRotation(), DirectionReflected.Rotation());
+	FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(DirectionReflected.Rotation(), GetActorRotation());
+	//UE_LOG(LogTemp, Warning, TEXT("%s"), *Delta.ToString());
+	float Exponent = abs(Delta.Yaw / 180.0f);
+	float DeltaInfluence = .4f * (1.0f - pow(.001f, Exponent));
+	float OriginalDirectionInfluence = 1 - abs(FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection));
+	OriginalDirectionInfluence = 4.0f * pow(OriginalDirectionInfluence, 2);
+	//UE_LOG(LogTemp, Warning, TEXT("%f"), DeltaInfluence);
+	Delta *= DeltaInfluence * OriginalDirectionInfluence;
+
+	//UE_LOG(LogTemp, Warning, TEXT("%s"), *Delta.ToString());
+
+	FRotator NewDirectionRotation = VelocityDirectionNormalized.Rotation() + Delta;
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *NewDirectionRotation.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *VelocityDirection.ToString());
+	VelocityDirection = NewDirectionRotation.Vector() * VelocityDirection.Size();
+	VelocityDirection.Z = 0.0f;
+
+	//UE_LOG(LogTemp, Warning, TEXT("%s"), *VelocityDirection.ToString());
+}
+
+void AProtoActionCharacter::CalcVelocity(FVector& LaunchVelocity) const
+{
+	const FVector VelocityDirectionNormalized = VelocityDirection.GetSafeNormal();
 
 	const float AngleInfluenceUp = FMath::Abs(FVector::DotProduct(WallJumpDirection, VelocityDirectionNormalized));
 	const float AngleInfluence = 1 - AngleInfluenceUp;
 	const float AngleInfluenceExp = 1.6f;
 	
-	const float VelocityMultiplier = pow(AngleInfluence, AngleInfluenceExp) + 1.0f;
-	const float VelocityUpMultiplier = 0.7f * pow(AngleInfluenceUp, AngleInfluenceExp * AngleInfluenceExp) + 1.3f;
-
 	// Takes into account how perpendicular the players velocity is with the wall
-	const float VelocityAwayMultiplier = VelocityDirection.Size() *AngleInfluence * 0.8f;
+	const float VelocityAwayMultiplier = VelocityDirection.Size() * AngleInfluence * 0.8f;
 	// Takes into account how parallel the players velocity is with the wall
 	const float VelocityAwayMultiplierUp = VelocityDirection.Size() * AngleInfluenceUp * 1.35;
 
 	FVector VelocityAway = (WallJumpDirection * VelocityAwayMultiplier + WallJumpDirection * VelocityAwayMultiplierUp) * WallJumpVelocityAwayMultiplier;
-	if (VelocityAway.Size() < 150.0f)
+	//float Exponent = VelocityAway.Size() / 100.0f;
+	//float VelocityAwayInfluence = -10.0f * (1-pow(.001f, Exponent)) + 11;
+	//VelocityAway *= VelocityAwayInfluence;
+
+	if (VelocityAway.Size() < 200.0f)
 	{
-		// If for some reason the velocity pushing away from the wall is less than 100, set to 100
+		// If for some reason the velocity pushing away from the wall is less than 150, set to 150
 		// No matter what we want the wall jump to push from the wall
-		VelocityAway = WallJumpDirection * 150.0f;
+		VelocityAway = WallJumpDirection * 200.0f;
 	}
+
+	const float VelocityMultiplier = pow(AngleInfluence, AngleInfluenceExp) + 1.0f;
+	const float VelocityUpMultiplier = 0.9f * pow(AngleInfluenceUp, AngleInfluenceExp * AngleInfluenceExp) + 1.1f;
 	
 	LaunchVelocity = VelocityDirection * VelocityMultiplier								// Keep and slightly increase current momentum
 					+ VelocityAway														// Push player away from wall based on how perpendicular and parallel their velocity is with the wall

@@ -55,7 +55,9 @@ protected:
 	virtual void Jump() override;
 	void DoubleJump();
 	void WallJump();
-	void CalcWallJumpVelocity(FVector& LaunchVelocity) const;
+	void CalcWallJumpVelocity(FVector& LaunchVelocity);
+	void CalcWallJumpDirectionAfterRotation(FVector& LaunchVelocity);
+	void CalcVelocity(FVector& LaunchVelocity) const;
 	FVector WallJumpDirection;
 	FVector VelocityDirection;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
