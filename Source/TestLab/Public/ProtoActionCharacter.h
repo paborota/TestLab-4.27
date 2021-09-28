@@ -33,6 +33,11 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
+	FVector SpawnLocation;
+	FRotator SpawnRotation;
+
+	void ResetPlayer();
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
 	float MouseSensitivity;

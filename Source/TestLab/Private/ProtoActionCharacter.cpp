@@ -35,7 +35,7 @@ AProtoActionCharacter::AProtoActionCharacter()
 	bCanWallJump = false;
 	bTraceInfoCached = false;
 	VelocityCachedTimeLength = .45f;
-	WallJumpVelocityUp = 500.0f;
+	WallJumpVelocityUp = 450.0f;
 	WallJumpVelocityAwayMultiplier = 1.1f;
 
 	DashVelocity = 5000.0f;
@@ -56,6 +56,9 @@ AProtoActionCharacter::AProtoActionCharacter()
 void AProtoActionCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	SpawnLocation = GetActorLocation();
+	SpawnRotation = GetActorRotation();
 }
 
 // Called every frame
@@ -98,6 +101,7 @@ void AProtoActionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	PlayerInputComponent->BindAction("Shift", IE_Pressed, this, &AProtoActionCharacter::Shift);
 	PlayerInputComponent->BindAction("Shift", IE_Released, this, &AProtoActionCharacter::ShiftReleased);
 	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &AProtoActionCharacter::Dash);
+	PlayerInputComponent->BindAction("ResetPlayer", IE_Pressed, this, &AProtoActionCharacter::ResetPlayer);
 }
 
 void AProtoActionCharacter::MoveForward(const float Val)
@@ -176,13 +180,19 @@ void AProtoActionCharacter::CalcWallJumpDirectionAfterRotation(FVector& LaunchVe
 {
 	const FVector VelocityDirectionNormalized = VelocityDirection.GetSafeNormal();
 
-	FVector DirectionReflected = VelocityDirectionNormalized - 2.0f * (FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection)) * WallJumpDirection;
+	// FVector DirectionReflected = VelocityDirectionNormalized - 2.0f * (FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection)) * WallJumpDirection;
 
 	// UE_LOG(LogTemp, Warning, TEXT("%s : %s"), *VelocityDirectionNormalized.ToString(), *DirectionReflected.ToString());
 
+	// Deltas for reflection based rotation offset
 	//FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(GetActorRotation(), DirectionReflected.Rotation());
-	FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(DirectionReflected.Rotation(), GetActorRotation());
+	//FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(DirectionReflected.Rotation(), GetActorRotation());
+
+	// Deltas for current direction based rotation offset
+	FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(GetActorRotation(), VelocityDirectionNormalized.Rotation());
+	// FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(VelocityDirectionNormalized.Rotation(), GetActorRotation());
 	//UE_LOG(LogTemp, Warning, TEXT("%s"), *Delta.ToString());
+	
 	float Exponent = abs(Delta.Yaw / 180.0f);
 	float DeltaInfluence = .4f * (1.0f - pow(.001f, Exponent));
 	float OriginalDirectionInfluence = 1 - abs(FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection));
@@ -223,15 +233,26 @@ void AProtoActionCharacter::CalcVelocity(FVector& LaunchVelocity) const
 	{
 		// If for some reason the velocity pushing away from the wall is less than 150, set to 150
 		// No matter what we want the wall jump to push from the wall
-		VelocityAway = WallJumpDirection * 200.0f;
+		VelocityAway.Normalize();
+		VelocityAway *= 200.0f;
 	}
 
 	const float VelocityMultiplier = pow(AngleInfluence, AngleInfluenceExp) + 1.0f;
 	const float VelocityUpMultiplier = 0.9f * pow(AngleInfluenceUp, AngleInfluenceExp * AngleInfluenceExp) + 1.1f;
+
+	FVector VelocityUp = GetActorUpVector() * WallJumpVelocityUp * VelocityUpMultiplier;
+
+	/*
+	if (VelocityUp.Size() < 150.0f)
+	{
+		VelocityUp.Normalize();
+		VelocityUp *= 150.0f;
+	}
+	*/
 	
 	LaunchVelocity = VelocityDirection * VelocityMultiplier								// Keep and slightly increase current momentum
 					+ VelocityAway														// Push player away from wall based on how perpendicular and parallel their velocity is with the wall
-					+ GetActorUpVector() * WallJumpVelocityUp * VelocityUpMultiplier;	// Push player up based on how parallel their velocity is with the wall
+					+ VelocityUp;	// Push player up based on how parallel their velocity is with the wall
 }
 
 void AProtoActionCharacter::InterpHoverFall(const float& DeltaTime)
@@ -470,4 +491,11 @@ void AProtoActionCharacter::DoWallTrace(const FCollisionQueryParams& Params, con
 			}
 		}
 	}
+}
+
+void AProtoActionCharacter::ResetPlayer()
+{
+	GetCharacterMovement()->StopMovementImmediately();
+	SetActorLocation(SpawnLocation);
+	SetActorRotation(SpawnRotation);
 }
