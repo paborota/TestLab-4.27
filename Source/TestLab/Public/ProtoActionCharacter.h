@@ -66,6 +66,8 @@ protected:
 	FVector WallJumpDirection;
 	FVector VelocityDirection;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
+	float DeltaRotationClamp;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
 	float WallJumpVelocityAwayMultiplier;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
 	float WallJumpVelocityUp;

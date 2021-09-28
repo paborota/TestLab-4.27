@@ -4,7 +4,6 @@
 #include "ProtoActionCharacter.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 AProtoActionCharacter::AProtoActionCharacter()
@@ -37,6 +36,7 @@ AProtoActionCharacter::AProtoActionCharacter()
 	VelocityCachedTimeLength = .45f;
 	WallJumpVelocityUp = 450.0f;
 	WallJumpVelocityAwayMultiplier = 1.1f;
+	DeltaRotationClamp = .4f;
 
 	DashVelocity = 5000.0f;
 	DashTimeLength = .2f;
@@ -180,35 +180,29 @@ void AProtoActionCharacter::CalcWallJumpDirectionAfterRotation(FVector& LaunchVe
 {
 	const FVector VelocityDirectionNormalized = VelocityDirection.GetSafeNormal();
 
-	// FVector DirectionReflected = VelocityDirectionNormalized - 2.0f * (FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection)) * WallJumpDirection;
-
-	// UE_LOG(LogTemp, Warning, TEXT("%s : %s"), *VelocityDirectionNormalized.ToString(), *DirectionReflected.ToString());
-
-	// Deltas for reflection based rotation offset
-	//FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(GetActorRotation(), DirectionReflected.Rotation());
-	//FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(DirectionReflected.Rotation(), GetActorRotation());
-
-	// Deltas for current direction based rotation offset
-	FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(GetActorRotation(), VelocityDirectionNormalized.Rotation());
-	// FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(VelocityDirectionNormalized.Rotation(), GetActorRotation());
-	//UE_LOG(LogTemp, Warning, TEXT("%s"), *Delta.ToString());
+	const float ActorYawRotation = GetActorRotation().Yaw;
+	float Delta = FMath::Fmod((FMath::Fmod((ActorYawRotation - VelocityDirectionNormalized.Rotation().Yaw), 360.0f) + 540), 360) - 180;
 	
-	float Exponent = abs(Delta.Yaw / 180.0f);
-	float DeltaInfluence = .4f * (1.0f - pow(.001f, Exponent));
+	// Exponent should not be higher than 1.0
+	const float Exponent = abs(Delta / 180.0f);
+	
+	// Rotation influence should be dampened based on how fast the character is moving
+	const float DeltaRotationDampen = DeltaRotationClamp * -(1 - pow(.09, GetCharacterMovement()->Velocity.Size())) + 1;
+	
+	const float DeltaMultiplier = DeltaRotationDampen * (1.0f - pow(.001f, Exponent));
+	
 	float OriginalDirectionInfluence = 1 - abs(FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection));
-	OriginalDirectionInfluence = 4.0f * pow(OriginalDirectionInfluence, 2);
-	//UE_LOG(LogTemp, Warning, TEXT("%f"), DeltaInfluence);
-	Delta *= DeltaInfluence * OriginalDirectionInfluence;
+	OriginalDirectionInfluence = 2.0f * pow(OriginalDirectionInfluence, 2);
+	
+	Delta *= DeltaMultiplier * OriginalDirectionInfluence;
 
-	//UE_LOG(LogTemp, Warning, TEXT("%s"), *Delta.ToString());
+	const float NewRotationYaw = VelocityDirectionNormalized.Rotation().Yaw + Delta;
+	const FRotator NewDirectionRotation = //UKismetMathLibrary::ComposeRotators(Delta, VelocityDirectionNormalized.Rotation());
+		FRotator(0.0f, NewRotationYaw, 0.0f);
 
-	FRotator NewDirectionRotation = VelocityDirectionNormalized.Rotation() + Delta;
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *NewDirectionRotation.ToString());
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *VelocityDirection.ToString());
-	VelocityDirection = NewDirectionRotation.Vector() * VelocityDirection.Size();
-	VelocityDirection.Z = 0.0f;
-
-	//UE_LOG(LogTemp, Warning, TEXT("%s"), *VelocityDirection.ToString());
+	FVector NewDirection = NewDirectionRotation.Vector();
+	NewDirection.Z = 0.0f;
+	VelocityDirection = NewDirection * VelocityDirection.Size();
 }
 
 void AProtoActionCharacter::CalcVelocity(FVector& LaunchVelocity) const
@@ -225,9 +219,6 @@ void AProtoActionCharacter::CalcVelocity(FVector& LaunchVelocity) const
 	const float VelocityAwayMultiplierUp = VelocityDirection.Size() * AngleInfluenceUp * 1.35;
 
 	FVector VelocityAway = (WallJumpDirection * VelocityAwayMultiplier + WallJumpDirection * VelocityAwayMultiplierUp) * WallJumpVelocityAwayMultiplier;
-	//float Exponent = VelocityAway.Size() / 100.0f;
-	//float VelocityAwayInfluence = -10.0f * (1-pow(.001f, Exponent)) + 11;
-	//VelocityAway *= VelocityAwayInfluence;
 
 	if (VelocityAway.Size() < 200.0f)
 	{
@@ -241,14 +232,6 @@ void AProtoActionCharacter::CalcVelocity(FVector& LaunchVelocity) const
 	const float VelocityUpMultiplier = 0.9f * pow(AngleInfluenceUp, AngleInfluenceExp * AngleInfluenceExp) + 1.1f;
 
 	FVector VelocityUp = GetActorUpVector() * WallJumpVelocityUp * VelocityUpMultiplier;
-
-	/*
-	if (VelocityUp.Size() < 150.0f)
-	{
-		VelocityUp.Normalize();
-		VelocityUp *= 150.0f;
-	}
-	*/
 	
 	LaunchVelocity = VelocityDirection * VelocityMultiplier								// Keep and slightly increase current momentum
 					+ VelocityAway														// Push player away from wall based on how perpendicular and parallel their velocity is with the wall
@@ -343,7 +326,14 @@ void AProtoActionCharacter::Dash()
 
 void AProtoActionCharacter::StopDash()
 {
-	GetCharacterMovement()->Velocity = GetCharacterMovement()->Velocity * .15f;
+	FVector CurrentDirection = GetCharacterMovement()->Velocity.GetSafeNormal();
+	float CurrentVDirectionVSUpDirection = FVector::DotProduct(CurrentDirection, GetActorUpVector());
+	float VelocityDampener = .15f;
+	if (CurrentVDirectionVSUpDirection < 0)
+	{
+		VelocityDampener = .85 * pow(-CurrentVDirectionVSUpDirection, 1.6) + VelocityDampener;
+	}
+	GetCharacterMovement()->Velocity = GetCharacterMovement()->Velocity * VelocityDampener;
 }
 
 void AProtoActionCharacter::PlayerClicked()
