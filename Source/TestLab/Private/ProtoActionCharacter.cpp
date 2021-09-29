@@ -189,7 +189,7 @@ void AProtoActionCharacter::CalcWallJumpDirectionAfterRotation(FVector& LaunchVe
 	// Rotation influence should be dampened based on how fast the character is moving
 	const float DeltaRotationDampen = DeltaRotationClamp * -(1 - pow(.09, GetCharacterMovement()->Velocity.Size())) + 1;
 	
-	const float DeltaMultiplier = DeltaRotationDampen * (1.0f - pow(.001f, Exponent));
+	const float DeltaMultiplier = DeltaRotationDampen * (1.0f - pow(.1f, Exponent));
 	
 	float OriginalDirectionInfluence = 1 - abs(FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection));
 	OriginalDirectionInfluence = 2.0f * pow(OriginalDirectionInfluence, 2);
