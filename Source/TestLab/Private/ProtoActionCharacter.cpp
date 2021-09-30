@@ -37,7 +37,8 @@ AProtoActionCharacter::AProtoActionCharacter()
 	VelocityCachedTimeLength = .45f;
 	WallJumpVelocityUp = 450.0f;
 	WallJumpVelocityAwayMultiplier = 1.1f;
-	DeltaRotationClamp = .4f;
+	DeltaRotationClamp = .65f;
+	MaxWallJumpSpeedMultiplier = 1.8f;
 
 	DashVelocity = 5000.0f;
 	DashTimeLength = .2f;
@@ -195,7 +196,8 @@ void AProtoActionCharacter::CalcWallJumpDirectionAfterRotation(FVector& LaunchVe
 	const float Exponent = abs(Delta / 180.0f);
 	
 	// Rotation influence should be dampened based on how fast the character is moving
-	const float DeltaRotationDampen = DeltaRotationClamp * -(1.0f - pow(.09f, GetCharacterMovement()->Velocity.Size())) + 1.0f;
+	const float SpeedExponent = GetCharacterMovement()->Velocity.Size() / (MaxSprintSpeed * MaxWallJumpSpeedMultiplier);
+	const float DeltaRotationDampen = DeltaRotationClamp * -(1.0f - pow(.09f, SpeedExponent)) + 1.0f;
 	
 	const float DeltaMultiplier = DeltaRotationDampen * (1.0f - pow(.1f, Exponent));
 	

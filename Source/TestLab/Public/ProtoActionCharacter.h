@@ -65,6 +65,7 @@ protected:
 	void CalcVelocity(FVector& LaunchVelocity) const;
 	FVector WallJumpDirection;
 	FVector VelocityDirection;
+	float MaxWallJumpSpeedMultiplier;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
 	float DeltaRotationClamp;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
