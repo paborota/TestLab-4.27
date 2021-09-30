@@ -179,16 +179,16 @@ void AProtoActionCharacter::CalcWallJumpVelocity(FVector& LaunchVelocity)
 void AProtoActionCharacter::CalcWallJumpDirectionAfterRotation(FVector& LaunchVelocity)
 {
 	const FVector VelocityDirectionNormalized = VelocityDirection.GetSafeNormal();
-	FVector WallRightVector = CachedHit.GetActor()->GetActorRightVector();
+	FVector WallNormalRightVector = (CachedHit.Normal.Rotation() + FRotator(0.0f, 90.0f, 0.0f)).Vector();
 
-	if (FVector::DotProduct(VelocityDirectionNormalized, WallRightVector) < 0 )
+	if (FVector::DotProduct(VelocityDirectionNormalized, WallNormalRightVector) < 0 )
 	{
-		WallRightVector *= -1.0f;
+		WallNormalRightVector *= -1.0f;
 	}
 
 	const float ActorYawRotation = GetActorRotation().Yaw;
 	
-	float Delta = FMath::Fmod((FMath::Fmod((ActorYawRotation - WallRightVector.Rotation().Yaw), 360.0f) + 540.0f), 360.0f) - 180.0f;
+	float Delta = FMath::Fmod((FMath::Fmod((ActorYawRotation - WallNormalRightVector.Rotation().Yaw), 360.0f) + 540.0f), 360.0f) - 180.0f;
 	
 	// Exponent should not be higher than 1.0
 	const float Exponent = abs(Delta / 180.0f);
