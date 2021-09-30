@@ -66,6 +66,8 @@ void AProtoActionCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	bCanWallJump = false;
+
 	if (GetCharacterMovement()->IsFalling())
 	{
 		CheckForNearbyWall();
@@ -78,11 +80,7 @@ void AProtoActionCharacter::Tick(float DeltaTime)
 		{
 			InterpHoverFall(DeltaTime);
 		}
-		
-		return;
 	}
-
-	bCanWallJump = false;
 }
 
 // Called to bind functionality to input
@@ -100,6 +98,8 @@ void AProtoActionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AProtoActionCharacter::JumpReleased);
 	PlayerInputComponent->BindAction("Shift", IE_Pressed, this, &AProtoActionCharacter::Shift);
 	PlayerInputComponent->BindAction("Shift", IE_Released, this, &AProtoActionCharacter::ShiftReleased);
+	PlayerInputComponent->BindAction("Ctrl", IE_Pressed, this, &AProtoActionCharacter::Ctrl);
+	PlayerInputComponent->BindAction("Ctrl", IE_Released, this, &AProtoActionCharacter::CtrlReleased);
 	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &AProtoActionCharacter::Dash);
 	PlayerInputComponent->BindAction("ResetPlayer", IE_Pressed, this, &AProtoActionCharacter::ResetPlayer);
 }
@@ -179,20 +179,27 @@ void AProtoActionCharacter::CalcWallJumpVelocity(FVector& LaunchVelocity)
 void AProtoActionCharacter::CalcWallJumpDirectionAfterRotation(FVector& LaunchVelocity)
 {
 	const FVector VelocityDirectionNormalized = VelocityDirection.GetSafeNormal();
+	FVector WallRightVector = CachedHit.GetActor()->GetActorRightVector();
+
+	if (FVector::DotProduct(VelocityDirectionNormalized, WallRightVector) < 0 )
+	{
+		WallRightVector *= -1.0f;
+	}
 
 	const float ActorYawRotation = GetActorRotation().Yaw;
-	float Delta = FMath::Fmod((FMath::Fmod((ActorYawRotation - VelocityDirectionNormalized.Rotation().Yaw), 360.0f) + 540), 360) - 180;
+	
+	float Delta = FMath::Fmod((FMath::Fmod((ActorYawRotation - WallRightVector.Rotation().Yaw), 360.0f) + 540.0f), 360.0f) - 180.0f;
 	
 	// Exponent should not be higher than 1.0
 	const float Exponent = abs(Delta / 180.0f);
 	
 	// Rotation influence should be dampened based on how fast the character is moving
-	const float DeltaRotationDampen = DeltaRotationClamp * -(1 - pow(.09, GetCharacterMovement()->Velocity.Size())) + 1;
+	const float DeltaRotationDampen = DeltaRotationClamp * -(1.0f - pow(.09f, GetCharacterMovement()->Velocity.Size())) + 1.0f;
 	
 	const float DeltaMultiplier = DeltaRotationDampen * (1.0f - pow(.1f, Exponent));
 	
-	float OriginalDirectionInfluence = 1 - abs(FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection));
-	OriginalDirectionInfluence = 2.0f * pow(OriginalDirectionInfluence, 2);
+	float OriginalDirectionInfluence = 1.0f - abs(FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection));
+	OriginalDirectionInfluence = 2.0f * pow(OriginalDirectionInfluence, 2.0f);
 	
 	Delta *= DeltaMultiplier * OriginalDirectionInfluence;
 
@@ -210,7 +217,7 @@ void AProtoActionCharacter::CalcVelocity(FVector& LaunchVelocity) const
 	const FVector VelocityDirectionNormalized = VelocityDirection.GetSafeNormal();
 
 	const float AngleInfluenceUp = FMath::Abs(FVector::DotProduct(WallJumpDirection, VelocityDirectionNormalized));
-	const float AngleInfluence = 1 - AngleInfluenceUp;
+	const float AngleInfluence = 1.0f - AngleInfluenceUp;
 	const float AngleInfluenceExp = 1.6f;
 	
 	// Takes into account how perpendicular the players velocity is with the wall
@@ -296,6 +303,17 @@ void AProtoActionCharacter::ShiftReleased()
 	Walk();
 }
 
+void AProtoActionCharacter::Ctrl()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Crouching"));
+	Crouch();
+}
+
+void AProtoActionCharacter::CtrlReleased()
+{
+	UnCrouch();
+}
+
 void AProtoActionCharacter::Sprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = MaxSprintSpeed;
@@ -379,8 +397,6 @@ void AProtoActionCharacter::CheckForNearbyWall()
 {
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
-
-	bCanWallJump = false;
 	
 	CheckForward(Params);
 	CheckBackward(Params);
@@ -450,8 +466,7 @@ void AProtoActionCharacter::DoWallTrace(const FCollisionQueryParams& Params, con
 		bCanWallJump = true;
 		if (!bTraceInfoCached)
 		{
-			CachedHit = HitTemp;
-			WallJumpDirection = CachedHit.Normal;
+			CacheWallInfo(HitTemp);
 			VelocityDirection = GetCharacterMovement()->Velocity;
 			VelocityDirection.Z = 0.0f;
 			bTraceInfoCached = true;
@@ -460,27 +475,25 @@ void AProtoActionCharacter::DoWallTrace(const FCollisionQueryParams& Params, con
 			return;
 		}
 		
-		// This code only gets called if there is hits on multiple line traces
-		// Check which wall is closer
-		// Whichever wall is closer is the wall that we want to jump off of
-		// Ignore if it's the same wall/actor
-		if (CachedHit.GetActor() != HitTemp.GetActor())
-		{
-			UE_LOG(LogTemp, Log, TEXT("%s"), *CachedHit.Normal.ToString());
-			UE_LOG(LogTemp, Log, TEXT("%s"), *CachedHit.Location.ToString());
-			UE_LOG(LogTemp, Log, TEXT("%s"), *HitTemp.Normal.ToString());
-			UE_LOG(LogTemp, Log, TEXT("%s"), *HitTemp.Location.ToString());
-			const float DistanceToHit = FVector::Distance(GetActorLocation(), CachedHit.Location);
-			const float DistanceToHitTemp = FVector::Distance(GetActorLocation(), HitTemp.Location);
+		// This code only gets called if there is hits on multiple line traces, or a hit during the cache timer
+		// Check which surface is closer
+		// Whichever surface is closer is the surface that we want to jump off of
+		
+		const float DistanceToHit = FVector::Distance(GetActorLocation(), CachedHit.Location);
+		const float DistanceToHitTemp = FVector::Distance(GetActorLocation(), HitTemp.Location);
 
-			if (DistanceToHit > DistanceToHitTemp)
-			{
-				CachedHit = HitTemp;
-				WallJumpDirection = CachedHit.Normal;
-				UE_LOG(LogTemp, Log, TEXT("Info Overwritten."));
-			}
+		if (DistanceToHit > DistanceToHitTemp)
+		{
+			CacheWallInfo(HitTemp);
+			UE_LOG(LogTemp, Log, TEXT("Info Overwritten."));
 		}
 	}
+}
+
+void AProtoActionCharacter::CacheWallInfo(const FHitResult& Hit)
+{
+	CachedHit = Hit;
+	WallJumpDirection = CachedHit.Normal;
 }
 
 void AProtoActionCharacter::ResetPlayer()

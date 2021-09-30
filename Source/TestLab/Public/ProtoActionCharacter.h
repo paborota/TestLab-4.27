@@ -107,6 +107,9 @@ protected:
 	float HaltInterpSpeed;
 	float HaltInputMultiplier;
 
+	void Ctrl();
+	void CtrlReleased();
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
 	USceneComponent* MainWallLineCaster;
 	
@@ -120,6 +123,7 @@ protected:
 	void CheckBackwardRight(const FCollisionQueryParams& Params);
 	void CheckBackwardLeft(const FCollisionQueryParams& Params);
 	void DoWallTrace(const FCollisionQueryParams& Params, const FVector& TraceDirection);
+	void CacheWallInfo(const FHitResult& Hit);
 	bool bTraceInfoCached;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
 	float VelocityCachedTimeLength;
