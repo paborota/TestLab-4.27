@@ -26,6 +26,7 @@ AProtoActionCharacter::AProtoActionCharacter()
 	GetCharacterMovement()->GravityScale = DefaultGravityScale;
 	GetCharacterMovement()->AirControl = 0.2f;
 	GetCharacterMovement()->GroundFriction = 50.0f;
+	GetCharacterMovement()->MaxAcceleration = 1024.0f;
 	
 	MaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
 	MaxSprintSpeed = MaxWalkSpeed * 2.0f;
