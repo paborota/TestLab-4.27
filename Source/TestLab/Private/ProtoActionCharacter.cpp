@@ -43,6 +43,7 @@ AProtoActionCharacter::AProtoActionCharacter()
 	bUseOldWallJump = false;
 	
 	WallJumpVelocity = 1200.0f;
+	WallJumpUpwardsForce = 400.0f;
 	SlidingSpeedMultiplier = 1.0f;
 	StartingNumberOfDoubleJumps = 2;
 	NumOfDoubleJumps = StartingNumberOfDoubleJumps;
@@ -300,7 +301,6 @@ void AProtoActionCharacter::CalcWallJumpVelocity(FVector& LaunchVelocity)
 {
 	if (!bUseOldWallJump)
 	{
-		CalcWallJumpDirection(LaunchVelocity);
 		CalcVelocity(LaunchVelocity);
 	}
 	else
@@ -308,21 +308,27 @@ void AProtoActionCharacter::CalcWallJumpVelocity(FVector& LaunchVelocity)
 		CalcWallJumpDirectionAfterRotationOLD(LaunchVelocity);
 		CalcVelocityOLD(LaunchVelocity);
 	}
-	
-	//UE_LOG(LogTemp, Warning, TEXT("%f"), GetCharacterMovement()->Velocity.Size());
 }
 
-void AProtoActionCharacter::CalcWallJumpDirection(FVector& LaunchVelocity)
+FRotator AProtoActionCharacter::CalcWallJumpDirection(FVector& LaunchVelocity)
 {
 	FVector PlayerLookLocation;
 	FRotator PlayerLookAngle;
 	GetController()->GetPlayerViewPoint(PlayerLookLocation, PlayerLookAngle);
 	LaunchVelocity = PlayerLookAngle.Vector().GetSafeNormal();
+	return PlayerLookAngle;
 }
 
 void AProtoActionCharacter::CalcVelocity(FVector& LaunchVelocity)
 {
+	const FRotator PlayerLookAngle = CalcWallJumpDirection(LaunchVelocity);
 	LaunchVelocity *= WallJumpVelocity;
+
+	const FVector PlayerLookDirection = PlayerLookAngle.Vector();
+	const float ForwardPitchExponent = FVector::DotProduct(GetActorForwardVector(), PlayerLookDirection);
+	const float ForwardPitchMultiplier = 1.25f * (1.0f - FMath::Pow(0.2f, ForwardPitchExponent));
+	const FVector PlayerLookUpDirection = (PlayerLookDirection.Rotation() + FRotator(90.0f, 0.0f, 0.0f)).Vector();
+	LaunchVelocity += PlayerLookUpDirection * WallJumpUpwardsForce * ForwardPitchMultiplier;
 }
 
 //---------------------------------------------------------------------------------

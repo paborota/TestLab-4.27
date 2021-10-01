@@ -66,7 +66,7 @@ protected:
 	void WallJumpOLD();
 	void ValidateCanWallJump();
 	void CalcWallJumpVelocity(FVector& LaunchVelocity);
-	void CalcWallJumpDirection(FVector& LaunchVelocity);
+	FRotator CalcWallJumpDirection(FVector& LaunchVelocity);
 	void CalcVelocity(FVector& LaunchVelocity);
 	void CalcWallJumpDirectionAfterRotationOLD(FVector& LaunchVelocity);
 	void CalcVelocityOLD(FVector& LaunchVelocity) const;
@@ -88,6 +88,8 @@ protected:
 	float WallJumpVelocityUp;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
 	float WallJumpVelocity;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
+	float WallJumpUpwardsForce;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
 	float SlidingSpeedMultiplier;
 	bool bWantsToHover;
