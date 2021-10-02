@@ -210,16 +210,17 @@ void AProtoActionCharacter::LookRight(const float Val)
 void AProtoActionCharacter::Jump()
 {
 	Super::Jump();
-
-	FString InText = bCanWallJump ? "True" : "False";
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *InText);
+	
 	if (bCanWallJump)
 	{
 		WallJump();
 	}
-	else if (GetCharacterMovement()->IsFalling() && !bUsedDoubleJump && bUseOldWallJump)
+	else if (GetCharacterMovement()->IsFalling())
 	{
-		DoubleJump();
+		if (NumOfDoubleJumps > 0 && !bUseOldWallJump || !bUsedDoubleJump && bUseOldWallJump)
+		{
+			DoubleJump();
+		}
 	}
 	bWantsToHover = true;
 }
@@ -236,10 +237,12 @@ void AProtoActionCharacter::JumpReleased()
 
 void AProtoActionCharacter::RightClick()
 {
+	/*
 	if (!bAttachedToWall && !bUseOldWallJump)
 	{
 		DoubleJump();
 	}
+	*/
 }
 
 void AProtoActionCharacter::DoubleJump()
