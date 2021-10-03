@@ -4,6 +4,7 @@
 #include "ProtoActionCharacter.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/WallJumpComponent.h"
 
 // Sets default values
 AProtoActionCharacter::AProtoActionCharacter()
@@ -31,9 +32,10 @@ AProtoActionCharacter::AProtoActionCharacter()
 	MaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
 	MaxSprintSpeed = MaxWalkSpeed * 2.0f;
 
+	WallJumpComp = CreateDefaultSubobject<UWallJumpComponent>(TEXT("WallJumpComponent"));
+
+	/*
 	WallCheckDistance = 65.0f;
-	bCanWallJump = false;
-	bAttachedToWall = false;
 	bTraceInfoCached = false;
 	VelocityCachedTimeLength = .45f;
 	WallJumpVelocityUp = 450.0f;
@@ -45,6 +47,8 @@ AProtoActionCharacter::AProtoActionCharacter()
 	WallJumpVelocity = 1200.0f;
 	WallJumpUpwardsForce = 400.0f;
 	SlidingSpeedMultiplier = 1.0f;
+	*/
+		
 	StartingNumberOfDoubleJumps = 2;
 	NumOfDoubleJumps = StartingNumberOfDoubleJumps;
 
@@ -76,73 +80,8 @@ void AProtoActionCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	bCanWallJump = false;
-	bAttachedToWall = false;
-
-	if (GetCharacterMovement()->IsFalling())
-	{
-		if (bUseOldWallJump)
-		{
-			UsingOldWallJumpTick(DeltaTime);
-		}
-		else
-		{
-			UsingNewWallJumpTick(DeltaTime);
-		}
-	}
-	else
-	{
-		bTraceInfoCached = false;
-	}
-}
-
-void AProtoActionCharacter::UsingNewWallJumpTick(const float& DeltaTime)
-{
-	if (CheckForNearbyWall())
-	{
-		bAttachedToWall = true;
-		//UE_LOG(LogTemp, Warning, TEXT("Validating CanWallJump."));
-		ValidateCanWallJump();
-		// Stop current movement, ONCE
-		if (!bMovementStopped)
-		{
-			GetCharacterMovement()->StopMovementImmediately();
-			GetCharacterMovement()->GravityScale = 0.1f;
-			bMovementStopped = true;
-		}
-		else
-		{
-			// Start sliding down, getting progressively faster
-			GetCharacterMovement()->GravityScale = FMath::InterpEaseIn(GetCharacterMovement()->GravityScale, DefaultGravityScale, DeltaTime * SlidingSpeedMultiplier, 2.0f);
-		}
-	}
-	else
-	{
-		bTraceInfoCached = false;
-		GetCharacterMovement()->GravityScale = DefaultGravityScale;
-		CheckOtherFallingUtil(DeltaTime);
-		bMovementStopped = false;
-	}
-}
-
-void AProtoActionCharacter::ValidateCanWallJump()
-{
-	// Check if players look direction is away from wall, if looking towards wall, don't allow to wall jump
-	FVector PlayerLookLocation;
-	FRotator PlayerLookAngle;
-	GetController()->GetPlayerViewPoint(PlayerLookLocation, PlayerLookAngle);
-	const float LookDirectionValidation = FVector::DotProduct(PlayerLookAngle.Vector(), WallJumpDirection);
-	if (LookDirectionValidation > 0)
-	{
-		bCanWallJump = true;
-	}
-}
-
-void AProtoActionCharacter::UsingOldWallJumpTick(const float& DeltaTime)
-{
-	CheckForNearbyWall();
-			
-	CheckOtherFallingUtil(DeltaTime);
+	if (!ensure((WallJumpComp != nullptr))) return;
+	WallJumpComp->WallJumpTick(DeltaTime);
 }
 
 void AProtoActionCharacter::CheckOtherFallingUtil(const float& DeltaTime)
@@ -181,7 +120,8 @@ void AProtoActionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 
 void AProtoActionCharacter::MoveForward(const float Val)
 {
-	if (bAttachedToWall && !bUseOldWallJump)
+	if (!ensure(WallJumpComp != nullptr)) return;
+	if (WallJumpComp->IsAttachedToWall() && !WallJumpComp->UsingOldWallJump())
 	{
 		return;
 	}
@@ -190,7 +130,8 @@ void AProtoActionCharacter::MoveForward(const float Val)
 
 void AProtoActionCharacter::MoveRight(const float Val)
 {
-	if (bAttachedToWall && !bUseOldWallJump)
+	if (!ensure(WallJumpComp != nullptr)) return;
+	if (WallJumpComp->IsAttachedToWall() && !WallJumpComp->UsingOldWallJump())
 	{
 		return;
 	}
@@ -210,14 +151,16 @@ void AProtoActionCharacter::LookRight(const float Val)
 void AProtoActionCharacter::Jump()
 {
 	Super::Jump();
-	
-	if (bCanWallJump)
+
+	if (!ensure(WallJumpComp != nullptr)) return;
+	UE_LOG(LogTemp, Warning, TEXT("WallJumpComp verified."));
+	if (WallJumpComp->CanWallJump())
 	{
-		WallJump();
+		WallJumpComp->WallJump();
 	}
 	else if (GetCharacterMovement()->IsFalling())
 	{
-		if (NumOfDoubleJumps > 0 && !bUseOldWallJump || !bUsedDoubleJump && bUseOldWallJump)
+		if (NumOfDoubleJumps > 0 && !WallJumpComp->UsingOldWallJump() || !bUsedDoubleJump && WallJumpComp->UsingOldWallJump())
 		{
 			DoubleJump();
 		}
@@ -247,7 +190,7 @@ void AProtoActionCharacter::RightClick()
 
 void AProtoActionCharacter::DoubleJump()
 {
-	if (bUseOldWallJump)
+	if (WallJumpComp->UsingOldWallJump())
 	{
 		DoubleJumpOLD();
 		return;
@@ -255,18 +198,232 @@ void AProtoActionCharacter::DoubleJump()
 
 	if (NumOfDoubleJumps > 0)
 	{
-		WallJump();
+		if (!ensure(WallJumpComp != nullptr)) return;
+		WallJumpComp->WallJump();
 		--NumOfDoubleJumps;
 	}
 }
 
 void AProtoActionCharacter::DoubleJumpOLD()
 {
-	FVector LaunchVelocity = FVector(0.0f, 0.0f, DoubleJumpVelocity);
+	const FVector LaunchVelocity = FVector(0.0f, 0.0f, DoubleJumpVelocity);
 	LaunchCharacter(LaunchVelocity, false, true);
 	bUsedDoubleJump = true;
 }
 
+void AProtoActionCharacter::InterpHoverFall(const float& DeltaTime)
+{
+	if (!bStartedHovering)
+	{
+		GetCharacterMovement()->GravityScale = 0.05f;
+		bStartedHovering = true;
+	}
+	
+	if (HoldingHoverDuration < MaxHoldingHoverDuration)
+	{
+		//UE_LOG(LogTemp, Log, TEXT("%f"), GetCharacterMovement()->GravityScale);
+		GetCharacterMovement()->GravityScale = FMath::InterpEaseIn(GetCharacterMovement()->GravityScale, DefaultGravityScale, DeltaTime, 2.0f);
+		HoldingHoverDuration += DeltaTime;
+	}
+	else
+	{
+		JumpReleased();
+	}
+}
+
+void AProtoActionCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	ResetUsedDoubleJump();
+	DashReset();
+	HoldingHoverDuration = 0.0f;
+	if (bWantsToSprintWhenLanded)
+	{
+		Sprint();
+	}
+	else
+	{
+		Walk();
+	}
+}
+
+void AProtoActionCharacter::Shift()
+{
+	bWantsToSprintWhenLanded = true;
+	if (GetCharacterMovement()->IsFalling())
+	{
+		return;
+	}
+	Sprint();
+}
+
+void AProtoActionCharacter::ShiftReleased()
+{
+	// Revert sprint and anything else that might need to be reverted
+	bWantsToSprintWhenLanded = false;
+	if (GetCharacterMovement()->IsFalling())
+	{
+		return;
+	}
+	Walk();
+}
+
+void AProtoActionCharacter::Ctrl()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Crouching"));
+	Crouch();
+}
+
+void AProtoActionCharacter::CtrlReleased()
+{
+	UnCrouch();
+}
+
+void AProtoActionCharacter::Sprint()
+{
+	GetCharacterMovement()->MaxWalkSpeed = MaxSprintSpeed;
+}
+
+void AProtoActionCharacter::Walk()
+{
+	GetCharacterMovement()->MaxWalkSpeed = MaxWalkSpeed;
+}
+
+void AProtoActionCharacter::Dash()
+{
+	if (bDashedRecently)
+	{
+		return;
+	}
+	
+	FVector EyeLocation;
+	FRotator EyeRotation;
+	GetActorEyesViewPoint(EyeLocation, EyeRotation);
+	const FVector LaunchVelocity = EyeRotation.Vector() * DashVelocity;
+	LaunchCharacter(LaunchVelocity, true, true);
+	bDashedRecently = true;
+	
+	FTimerHandle TimerHandle_StopDash;
+	GetWorldTimerManager().SetTimer(TimerHandle_StopDash, this, &AProtoActionCharacter::StopDash, DashTimeLength);
+}
+
+void AProtoActionCharacter::StopDash()
+{
+	FVector CurrentDirection = GetCharacterMovement()->Velocity.GetSafeNormal();
+	float CurrentVDirectionVSUpDirection = FVector::DotProduct(CurrentDirection, GetActorUpVector());
+	float VelocityDampener = .15f;
+	if (CurrentVDirectionVSUpDirection < 0)
+	{
+		VelocityDampener = .85 * pow(-CurrentVDirectionVSUpDirection, 1.6) + VelocityDampener;
+	}
+	GetCharacterMovement()->Velocity = GetCharacterMovement()->Velocity * VelocityDampener;
+}
+
+void AProtoActionCharacter::PlayerClicked()
+{
+	// wind up melee and slow gravity(?)
+	bPlayerHoldingClick = true;
+	GetCharacterMovement()->GravityScale = 0.05f;
+}
+
+void AProtoActionCharacter::ClickReleased()
+{
+	// release melee and return gravity(?)
+	bPlayerHoldingClick = false;
+	
+	FTimerHandle TimerHandle_ResetGravityParams;
+	GetWorldTimerManager().SetTimer(TimerHandle_ResetGravityParams, this, &AProtoActionCharacter::ResetGravityParams, .1f);
+}
+
+void AProtoActionCharacter::InterpHaltMovement(const float& DeltaTime)
+{
+	if (HoldingMeleeDuration < MaxHoldingMeleeDuration)
+	{
+		HaltInputMultiplier = FMath::FInterpTo(HaltInputMultiplier, 0.15f, DeltaTime, HaltInterpSpeed);
+		GetCharacterMovement()->Velocity = FMath::VInterpTo(GetCharacterMovement()->Velocity, FVector(0.0f), DeltaTime, HaltInterpSpeed);
+		GetCharacterMovement()->GravityScale = FMath::FInterpTo(GetCharacterMovement()->GravityScale, .05f, DeltaTime, HaltInterpSpeed);
+		HoldingMeleeDuration += DeltaTime;
+	}
+	else
+	{
+		ResetGravityParams();
+	}
+}
+
+void AProtoActionCharacter::ResetGravityParams()
+{
+	GetCharacterMovement()->GravityScale = DefaultGravityScale;
+	HoldingMeleeDuration = 0.0f;
+	HaltInputMultiplier = 1.0f;
+	bPlayerHoldingClick = false;
+}
+
+void AProtoActionCharacter::ResetPlayer()
+{
+	GetCharacterMovement()->StopMovementImmediately();
+	SetActorLocation(SpawnLocation);
+	SetActorRotation(SpawnRotation);
+}
+
+
+
+
+
+
+
+/*
+void AProtoActionCharacter::UsingNewWallJumpTick(const float& DeltaTime)
+{
+if (CheckForNearbyWall())
+{
+bAttachedToWall = true;
+//UE_LOG(LogTemp, Warning, TEXT("Validating CanWallJump."));
+ValidateCanWallJump();
+// Stop current movement, ONCE
+if (!bMovementStopped)
+{
+GetCharacterMovement()->StopMovementImmediately();
+GetCharacterMovement()->GravityScale = 0.1f;
+bMovementStopped = true;
+}
+else
+{
+// Start sliding down, getting progressively faster
+GetCharacterMovement()->GravityScale = FMath::InterpEaseIn(GetCharacterMovement()->GravityScale, DefaultGravityScale, DeltaTime * SlidingSpeedMultiplier, 2.0f);
+}
+}
+else
+{
+bTraceInfoCached = false;
+GetCharacterMovement()->GravityScale = DefaultGravityScale;
+CheckOtherFallingUtil(DeltaTime);
+bMovementStopped = false;
+}
+}
+
+void AProtoActionCharacter::ValidateCanWallJump()
+{
+// Check if players look direction is away from wall, if looking towards wall, don't allow to wall jump
+FVector PlayerLookLocation;
+FRotator PlayerLookAngle;
+GetController()->GetPlayerViewPoint(PlayerLookLocation, PlayerLookAngle);
+const float LookDirectionValidation = FVector::DotProduct(PlayerLookAngle.Vector(), WallJumpDirection);
+if (LookDirectionValidation > 0)
+{
+bCanWallJump = true;
+}
+}
+
+void AProtoActionCharacter::UsingOldWallJumpTick(const float& DeltaTime)
+{
+CheckForNearbyWall();
+			
+CheckOtherFallingUtil(DeltaTime);
+}
+*/
+
+/*
 void AProtoActionCharacter::WallJump()
 {
 	if (bUseOldWallJump)
@@ -409,155 +566,10 @@ void AProtoActionCharacter::CalcVelocityOLD(FVector& LaunchVelocity) const
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
+*/
 
-void AProtoActionCharacter::InterpHoverFall(const float& DeltaTime)
-{
-	if (!bStartedHovering)
-	{
-		GetCharacterMovement()->GravityScale = 0.05f;
-		bStartedHovering = true;
-	}
-	
-	if (HoldingHoverDuration < MaxHoldingHoverDuration)
-	{
-		//UE_LOG(LogTemp, Log, TEXT("%f"), GetCharacterMovement()->GravityScale);
-		GetCharacterMovement()->GravityScale = FMath::InterpEaseIn(GetCharacterMovement()->GravityScale, DefaultGravityScale, DeltaTime, 2.0f);
-		HoldingHoverDuration += DeltaTime;
-	}
-	else
-	{
-		JumpReleased();
-	}
-}
 
-void AProtoActionCharacter::Landed(const FHitResult& Hit)
-{
-	Super::Landed(Hit);
-
-	DoubleJumpReset();
-	DashReset();
-	HoldingHoverDuration = 0.0f;
-	if (bWantsToSprintWhenLanded)
-	{
-		Sprint();
-	}
-	else
-	{
-		Walk();
-	}
-}
-
-void AProtoActionCharacter::Shift()
-{
-	bWantsToSprintWhenLanded = true;
-	if (GetCharacterMovement()->IsFalling())
-	{
-		return;
-	}
-	Sprint();
-}
-
-void AProtoActionCharacter::ShiftReleased()
-{
-	// Revert sprint and anything else that might need to be reverted
-	bWantsToSprintWhenLanded = false;
-	if (GetCharacterMovement()->IsFalling())
-	{
-		return;
-	}
-	Walk();
-}
-
-void AProtoActionCharacter::Ctrl()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Crouching"));
-	Crouch();
-}
-
-void AProtoActionCharacter::CtrlReleased()
-{
-	UnCrouch();
-}
-
-void AProtoActionCharacter::Sprint()
-{
-	GetCharacterMovement()->MaxWalkSpeed = MaxSprintSpeed;
-}
-
-void AProtoActionCharacter::Walk()
-{
-	GetCharacterMovement()->MaxWalkSpeed = MaxWalkSpeed;
-}
-
-void AProtoActionCharacter::Dash()
-{
-	if (bDashedRecently)
-	{
-		return;
-	}
-	
-	FVector EyeLocation;
-	FRotator EyeRotation;
-	GetActorEyesViewPoint(EyeLocation, EyeRotation);
-	FVector LaunchVelocity = EyeRotation.Vector() * DashVelocity;
-	LaunchCharacter(LaunchVelocity, true, true);
-	bDashedRecently = true;
-	
-	FTimerHandle TimerHandle_StopDash;
-	GetWorldTimerManager().SetTimer(TimerHandle_StopDash, this, &AProtoActionCharacter::StopDash, DashTimeLength);
-}
-
-void AProtoActionCharacter::StopDash()
-{
-	FVector CurrentDirection = GetCharacterMovement()->Velocity.GetSafeNormal();
-	float CurrentVDirectionVSUpDirection = FVector::DotProduct(CurrentDirection, GetActorUpVector());
-	float VelocityDampener = .15f;
-	if (CurrentVDirectionVSUpDirection < 0)
-	{
-		VelocityDampener = .85 * pow(-CurrentVDirectionVSUpDirection, 1.6) + VelocityDampener;
-	}
-	GetCharacterMovement()->Velocity = GetCharacterMovement()->Velocity * VelocityDampener;
-}
-
-void AProtoActionCharacter::PlayerClicked()
-{
-	// wind up melee and slow gravity(?)
-	bPlayerHoldingClick = true;
-	GetCharacterMovement()->GravityScale = 0.05f;
-}
-
-void AProtoActionCharacter::ClickReleased()
-{
-	// release melee and return gravity(?)
-	bPlayerHoldingClick = false;
-	
-	FTimerHandle TimerHandle_ResetGravityParams;
-	GetWorldTimerManager().SetTimer(TimerHandle_ResetGravityParams, this, &AProtoActionCharacter::ResetGravityParams, .1f);
-}
-
-void AProtoActionCharacter::InterpHaltMovement(const float& DeltaTime)
-{
-	if (HoldingMeleeDuration < MaxHoldingMeleeDuration)
-	{
-		HaltInputMultiplier = FMath::FInterpTo(HaltInputMultiplier, 0.15f, DeltaTime, HaltInterpSpeed);
-		GetCharacterMovement()->Velocity = FMath::VInterpTo(GetCharacterMovement()->Velocity, FVector(0.0f), DeltaTime, HaltInterpSpeed);
-		GetCharacterMovement()->GravityScale = FMath::FInterpTo(GetCharacterMovement()->GravityScale, .05f, DeltaTime, HaltInterpSpeed);
-		HoldingMeleeDuration += DeltaTime;
-	}
-	else
-	{
-		ResetGravityParams();
-	}
-}
-
-void AProtoActionCharacter::ResetGravityParams()
-{
-	GetCharacterMovement()->GravityScale = DefaultGravityScale;
-	HoldingMeleeDuration = 0.0f;
-	HaltInputMultiplier = 1.0f;
-	bPlayerHoldingClick = false;
-}
-
+/*
 bool AProtoActionCharacter::CheckForNearbyWall()
 {
 	FCollisionQueryParams Params;
@@ -807,10 +819,4 @@ void AProtoActionCharacter::CacheWallInfo(const FHitResult& Hit)
 	CachedHit = Hit;
 	WallJumpDirection = CachedHit.Normal;
 }
-
-void AProtoActionCharacter::ResetPlayer()
-{
-	GetCharacterMovement()->StopMovementImmediately();
-	SetActorLocation(SpawnLocation);
-	SetActorRotation(SpawnRotation);
-}
+*/

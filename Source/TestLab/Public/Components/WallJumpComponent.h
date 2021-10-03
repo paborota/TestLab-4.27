@@ -3,69 +3,28 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/WallJumpComponentInterface.h"
-#include "Components/Powerups/PowerupInterface.h"
-#include "GameFramework/Character.h"
-#include "ProtoActionCharacter.generated.h"
+#include "Components/ActorComponent.h"
+#include "WallJumpComponent.generated.h"
 
 
-class UWallJumpComponent;
+class IWallJumpComponentInterface;
 
-UENUM(BlueprintType)
-enum class EWallScanHit : uint8
-{
-	Forward,
-	Backward,
-	Left,
-	Right,
-	ForwardRight,
-	ForwardLeft,
-	BackwardRight,
-	BackwardLeft,
-	None
-};
-
-UCLASS()
-class TESTLAB_API AProtoActionCharacter : public ACharacter, public IPowerupInterface, public IWallJumpComponentInterface
+UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+class TESTLAB_API UWallJumpComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:
-	// Sets default values for this character's properties
-	AProtoActionCharacter();
+public:	
+	// Sets default values for this component's properties
+	UWallJumpComponent();
 
 protected:
-	// Called when the game starts or when spawned
+	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
-	UWallJumpComponent* WallJumpComp;
+	IWallJumpComponentInterface* OwnerAsInterface;
+	ACharacter* OwnerAsCharacter;
 	
-	FVector SpawnLocation;
-	FRotator SpawnRotation;
-
-	void ResetPlayer();
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
-	float MouseSensitivity;
-
-	float DefaultGravityScale;
-	//float DefaultMaxAcceleration;
-
-	void MoveForward(const float Val);
-	void MoveRight(const float Val);
-	void LookUp(const float Val);
-	void LookRight(const float Val);
-	
-	void PlayerClicked();
-	bool bPlayerHoldingClick;
-	float HoldingMeleeDuration;
-	float MaxHoldingMeleeDuration;
-	void ClickReleased();
-	void ResetGravityParams();
-
-	/*
-	void WallJump();
 	void WallJumpOLD();
 	void ValidateCanWallJump();
 	void CalcWallJumpVelocity(FVector& LaunchVelocity);
@@ -73,7 +32,8 @@ protected:
 	void CalcVelocity(FVector& LaunchVelocity);
 	void CalcWallJumpDirectionAfterRotationOLD(FVector& LaunchVelocity);
 	void CalcVelocityOLD(FVector& LaunchVelocity) const;
-	
+
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
 	bool bUseOldWallJump;
 	bool bMovementStopped;
@@ -92,59 +52,13 @@ protected:
 	float WallJumpUpwardsForce;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
 	float SlidingSpeedMultiplier;
-	*/
 
-	virtual void Jump() override;
-	void DoubleJump();
-	void DoubleJumpOLD();
-	void RightClick();
-	
-	bool bWantsToHover;
-	void JumpReleased();
-	void InterpHoverFall(const float& DeltaTime);
-	float HoldingHoverDuration;
-	float MaxHoldingHoverDuration;
-	bool bStartedHovering;
-	virtual void Landed(const FHitResult& Hit) override;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
-	float DoubleJumpVelocity;
-	bool bUsedDoubleJump;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (ClampMin="0"))
-	int32 StartingNumberOfDoubleJumps;
-	int32 NumOfDoubleJumps;
-
-	void Shift();
-	void ShiftReleased();
-
-	void Sprint();
-	void Walk();
-	float MaxWalkSpeed;
-	UPROPERTY(EditDefaultsOnly, Category="Player")
-	float MaxSprintSpeed;
-	bool bWantsToSprintWhenLanded;
-	
-	void Dash();
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
-	float DashVelocity;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
-	float DashTimeLength;
-	bool bDashedRecently;
-	void StopDash();
-	void DashReset() { bDashedRecently = false; }
-
-	void InterpHaltMovement(const float& DeltaTime);
-	float HaltInterpSpeed;
-	float HaltInputMultiplier;
-
-	void Ctrl();
-	void CtrlReleased();
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
+	UPROPERTY()
 	USceneComponent* MainWallLineCaster;
-
-	/*
+	
 	bool CheckForNearbyWall();
+	FVector CurrentTickForwardVector;
+	FVector CurrentTickRightVector;
 	bool CheckForward(const FCollisionQueryParams& Params);
 	bool CheckBackward(const FCollisionQueryParams& Params);
 	bool CheckRight(const FCollisionQueryParams& Params);
@@ -174,28 +88,26 @@ protected:
 	float WallCheckDistance;
 	FHitResult CachedHit;
 	// EWallScanHit EWallHit;
+	bool bCanWallJump;
+	bool bAttachedToWall;
 
 	void UsingNewWallJumpTick(const float& DeltaTime);
 	void UsingOldWallJumpTick(const float& DeltaTime);
-	*/
-	
 
+	float MaxSprintSpeedFromOwner;
+	float DefaultGravityScaleFromOwner;
+	
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	void WallJumpTick(const float& DeltaTime);
 
-	virtual USceneComponent* GetLineCasterRef() const override { return MainWallLineCaster; }
+	void WallJump();
 
-	virtual float GetMaxSprintSpeed() const override { return MaxSprintSpeed; }
-	
-	virtual float GetDefaultGravityScale() const override { return DefaultGravityScale; }
-	
-	virtual void AddDoubleJumpCharge(const float& Amount) override { NumOfDoubleJumps += Amount; }
+	bool CanWallJump() const { return bCanWallJump; }
+	void SetCanWallJump(const bool& bNewVal) { bCanWallJump = bNewVal; }
 
-	virtual void ResetUsedDoubleJump() override { bUsedDoubleJump = false; }
+	bool IsAttachedToWall() const { return bAttachedToWall; }
+	void SetIsAttachedToWall(const bool& bNewVal) { bAttachedToWall = bNewVal; }
 
-	virtual void CheckOtherFallingUtil(const float& DeltaTime) override;
+	bool UsingOldWallJump() const { return bUseOldWallJump; }
 };
