@@ -48,5 +48,5 @@ public:
 	
 	TSubclassOf<UActorComponent> GetPowerupClass() const { return PowerupClass; };
 
-	float GetPowerupSpawnCoolDown() const { return PowerupSpawnCooldown; };
+	// float GetPowerupSpawnCoolDown() const { return PowerupSpawnCooldown; };
 };
