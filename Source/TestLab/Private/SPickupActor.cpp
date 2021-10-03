@@ -22,6 +22,8 @@ ASPickupActor::ASPickupActor()
 	DecalComp->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f));
 	DecalComp->DecalSize = FVector(64.0f, 75.0f, 75.0f);
 	DecalComp->SetupAttachment(RootComponent);
+
+	RespawnCooldown = 0.0f;
 }
 
 // Called when the game starts or when spawned
@@ -61,9 +63,9 @@ void ASPickupActor::VerifyActor(AActor* OtherActor)
 	
 	if (!ensure(PowerupInstance != nullptr)) return;
 	ActivatePowerup(Character);
-	if (PowerupInstance->GetPowerupSpawnCoolDown() > 0.0f)
+	if (RespawnCooldown > 0.0f)
 	{
-		GetWorldTimerManager().SetTimer(TimerHandle_RespawnPowerupInstance, this, &ASPickupActor::Respawn, PowerupInstance->GetPowerupSpawnCoolDown());
+		GetWorldTimerManager().SetTimer(TimerHandle_RespawnPowerupInstance, this, &ASPickupActor::Respawn, RespawnCooldown);
 	}
 				
 	PowerupInstance->Destroy();
