@@ -45,11 +45,18 @@ void UWallJumpComponent::BeginPlay()
 	DefaultGravityScaleFromOwner = OwnerAsInterface->GetDefaultGravityScale();
 }
 
-bool UWallJumpComponent::AttachToWall()
+void UWallJumpComponent::AttachToWall()
 {
 	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
+	if (!ensure(OwnerCharacterMovement != nullptr)) return;
+	
+	bAttachedToWall = true;
+	OwnerCharacterMovement->StopMovementImmediately();
+	OwnerCharacterMovement->GravityScale = 0.1f;
+	/*
+	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
 	if (!ensure(OwnerCharacterMovement != nullptr)) return false;
-    if (GetOwner()->GetVelocity().Z < 0.0f && CheckForNearbyWall())
+    if (CheckForNearbyWall())
     {
     	OwnerCharacterMovement->StopMovementImmediately();
     	OwnerCharacterMovement->GravityScale = 0.1f;
@@ -59,6 +66,7 @@ bool UWallJumpComponent::AttachToWall()
     	return true;
     }
 	return false;
+	*/
 }
 
 void UWallJumpComponent::DetachFromWall()
@@ -85,10 +93,17 @@ void UWallJumpComponent::UsingNewWallJumpTick(const float& DeltaTime)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Near wall."));
 		if (!ensure(OwnerAsCharacter != nullptr)) return;
-		OwnerAsCharacter->GetCharacterMovement()->GravityScale = FMath::InterpEaseIn(OwnerAsCharacter->GetCharacterMovement()->GravityScale, DefaultGravityScaleFromOwner, DeltaTime * SlidingSpeedMultiplier, 2.0f);
-		ValidateCanWallJump();
+		if (OwnerAsCharacter->GetVelocity().Z < 0.0f && !bAttachedToWall)
+		{
+			AttachToWall();
+		}
+		else if (bAttachedToWall)
+		{
+			OwnerAsCharacter->GetCharacterMovement()->GravityScale = FMath::InterpEaseIn(OwnerAsCharacter->GetCharacterMovement()->GravityScale, DefaultGravityScaleFromOwner, DeltaTime * SlidingSpeedMultiplier, 2.0f);
+			ValidateCanWallJump();
+		}
 	}
-	else
+	else if (bAttachedToWall)
 	{
 		DetachFromWall();
 	}

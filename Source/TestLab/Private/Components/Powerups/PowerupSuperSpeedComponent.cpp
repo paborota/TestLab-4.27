@@ -21,7 +21,7 @@ UPowerupSuperSpeedComponent::UPowerupSuperSpeedComponent()
 	
 	SetHaveTimeAfterLastTick(true);
 
-	SetIsReplicated(true);
+	SetIsReplicatedByDefault(true);
 	SetClientReplicatesTick(true);
 }
 

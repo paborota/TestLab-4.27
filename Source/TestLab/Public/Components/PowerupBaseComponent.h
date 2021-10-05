@@ -16,12 +16,6 @@ public:
 	// Sets default values for this component's properties
 	UPowerupBaseComponent();
 
-	void SetClientReplicatesTick(const bool& ShouldReplicate) { bAllowClientTick = ShouldReplicate; }
-	
-	void SetHaveTimeAfterLastTick(const bool& Val) { bHaveTimeBetweenTickAfterFinalTick = Val; }
-
-	void SetKeepAliveUntilDestroyed(const bool& Val) { bKeepAliveUntilDestroyed = Val; }
-
 	// Overriden for the potential to have components that last forever, or until forcefully destroyed by something else
 	// Destroy component is used to sync when a powerup is set to expire, to all clients
 	// Powerup then cleans up values that it changed, if needed, before calling to Super
@@ -30,6 +24,12 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	void SetClientReplicatesTick(const bool& ShouldReplicate) { bAllowClientTick = ShouldReplicate; }
+
+	void SetHaveTimeAfterLastTick(const bool& Val) { bHaveTimeBetweenTickAfterFinalTick = Val; }
+
+	void SetKeepAliveUntilDestroyed(const bool& Val) { bKeepAliveUntilDestroyed = Val; }
 	
 	// Used specifically to make sure that values are cleaned up before component gets destroyed
 	//virtual void PreDestroyFromReplication() override;

@@ -48,7 +48,7 @@ protected:
 
 	void ActivatePowerup(IPowerupInterface* OtherActor);
 
-public:	
-
-	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+	UFUNCTION()
+	void OnSphereCompOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+	
 };

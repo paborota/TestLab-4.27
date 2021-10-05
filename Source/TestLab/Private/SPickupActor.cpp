@@ -33,6 +33,7 @@ void ASPickupActor::BeginPlay()
 
 	if (GetLocalRole() == ROLE_Authority)
 	{
+		SphereComp->OnComponentBeginOverlap.AddDynamic(this, &ASPickupActor::OnSphereCompOverlap);
 		Respawn();
 	}
 }
@@ -45,14 +46,10 @@ void ASPickupActor::Respawn()
 	PowerupInstance = GetWorld()->SpawnActor<ASPowerupActor>(PowerupClass, GetTransform(), SpawnParams);
 }
 
-void ASPickupActor::NotifyActorBeginOverlap(AActor* OtherActor)
+void ASPickupActor::OnSphereCompOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	Super::NotifyActorBeginOverlap(OtherActor);
-
-	if (GetLocalRole() == ROLE_Authority)
-	{
-		VerifyActor(OtherActor);
-	}
+	VerifyActor(OtherActor);
 }
 
 void ASPickupActor::VerifyActor(AActor* OtherActor)
@@ -61,7 +58,8 @@ void ASPickupActor::VerifyActor(AActor* OtherActor)
 	if (!ensure(Character != nullptr)) return;
 	UE_LOG(LogTemp, Warning, TEXT("Player overlapped pickup actor."));
 	
-	if (!ensure(PowerupInstance != nullptr)) return;
+	if (!PowerupInstance) return;
+	
 	ActivatePowerup(Character);
 	if (RespawnCooldown > 0.0f)
 	{

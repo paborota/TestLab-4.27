@@ -89,7 +89,10 @@ protected:
 	FHitResult CachedHit;
 	// EWallScanHit EWallHit;
 	bool bCanWallJump;
+
+	void AttachToWall();
 	bool bAttachedToWall;
+	bool bWantsToGrabWall;
 
 	void UsingNewWallJumpTick(const float& DeltaTime);
 	void UsingOldWallJumpTick(const float& DeltaTime);
@@ -101,7 +104,6 @@ public:
 
 	void WallJumpTick(const float& DeltaTime);
 	
-	bool AttachToWall();
 	void DetachFromWall();
 
 	void WallJump();
@@ -111,6 +113,9 @@ public:
 
 	bool IsAttachedToWall() const { return bAttachedToWall; }
 	void SetIsAttachedToWall(const bool& bNewVal) { bAttachedToWall = bNewVal; }
+
+	void SetWantsToGrabWall(const bool& bNewVal) { bWantsToGrabWall = bNewVal; }
+	bool GetWantsToGrabWall() const { return bWantsToGrabWall; }
 
 	bool UsingOldWallJump() const { return bUseOldWallJump; }
 };

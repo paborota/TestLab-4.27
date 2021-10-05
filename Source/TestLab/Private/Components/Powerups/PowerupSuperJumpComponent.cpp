@@ -3,8 +3,6 @@
 
 #include "Components/Powerups/PowerupSuperJumpComponent.h"
 
-#include "GameFramework/CharacterMovementComponent.h"
-//#include "SCharacter.h"
 
 UPowerupSuperJumpComponent::UPowerupSuperJumpComponent()
 {
@@ -17,7 +15,7 @@ UPowerupSuperJumpComponent::UPowerupSuperJumpComponent()
 
 	SetHaveTimeAfterLastTick(true);
 	
-	SetIsReplicated(true);
+	SetIsReplicatedByDefault(true);
 	SetClientReplicatesTick(true);
 }
 

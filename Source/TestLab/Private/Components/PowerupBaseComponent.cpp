@@ -25,7 +25,7 @@ UPowerupBaseComponent::UPowerupBaseComponent()
 
 	// Change this to true if manipulating something such as materials to visualize active powerups
 	// Or if the effect needs to be done on owning clients end, as well
-	SetIsReplicated(false);
+	SetIsReplicatedByDefault(false);
 }
 
 void UPowerupBaseComponent::DestroyComponent(bool bPromoteChildren)

@@ -112,14 +112,14 @@ void AProtoActionCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	
 	if (!ensure((WallJumpComponent != nullptr))) return;
-	if (WallJumpComponent->IsAttachedToWall())
+	if (WallJumpComponent->GetWantsToGrabWall())
 	{
 		WallJumpComponent->WallJumpTick(DeltaTime);
 	}
 
 	if (bIsDead)
 	{
-		
+		// @TODO add death effect.
 	}
 }
 
@@ -190,23 +190,31 @@ void AProtoActionCharacter::LookRight(const float Val)
 void AProtoActionCharacter::Jump()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Jump pressed."));
-	Super::Jump();
-
+	if (CanJump())
+	{
+		Super::Jump();
+		bWasNormalJump = true;
+		return;
+	}
+	
+	bWasNormalJump = false;
 	if (!ensure(WallJumpComponent != nullptr)) return;
 	UE_LOG(LogTemp, Warning, TEXT("WallJumpComp verified."));
-	if (GetCharacterMovement()->IsFalling() && !WallJumpComponent->AttachToWall())
+	if (GetCharacterMovement()->IsFalling())
 	{
-		if (NumOfDoubleJumps > 0 && !WallJumpComponent->UsingOldWallJump() || !bUsedDoubleJump && WallJumpComponent->UsingOldWallJump())
-		{
-			DoubleJump();
-		}
+		WallJumpComponent->SetWantsToGrabWall(true);
 	}
-	//bWantsToHover = true;
 }
 
 void AProtoActionCharacter::JumpReleased()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Jump released."));
+	if (bWasNormalJump)
+	{
+		return;
+	}
+
+	WallJumpComponent->SetWantsToGrabWall(false);
 	if (!ensure(WallJumpComponent != nullptr)) return;
 	if (WallJumpComponent->IsAttachedToWall())
 	{
@@ -216,14 +224,13 @@ void AProtoActionCharacter::JumpReleased()
 			WallJumpComponent->WallJump();
 		}
 	}
-	/*
-	bWantsToHover = false;
-	if (bStartedHovering)
+	else if (GetCharacterMovement()->IsFalling())
 	{
-		bStartedHovering = false;
-		GetCharacterMovement()->GravityScale = DefaultGravityScale;
+		if (NumOfDoubleJumps > 0 && !WallJumpComponent->UsingOldWallJump() || !bUsedDoubleJump && WallJumpComponent->UsingOldWallJump())
+		{
+			DoubleJump();
+		}
 	}
-	*/
 }
 
 void AProtoActionCharacter::RightClick()

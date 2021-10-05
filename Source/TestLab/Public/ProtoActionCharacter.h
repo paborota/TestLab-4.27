@@ -69,6 +69,7 @@ protected:
 	void ResetGravityParams();
 
 	virtual void Jump() override;
+	bool bWasNormalJump;
 	void DoubleJump();
 	void DoubleJumpOLD();
 	void RightClick();
