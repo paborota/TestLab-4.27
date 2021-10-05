@@ -70,7 +70,7 @@ void UPowerupBaseComponent::OnPowerupTick()
 	{
 		return;
 	}
-
+	
 	UE_LOG(LogTemp, Warning, TEXT("Tick being processed."));
 	
 	if (bAllowClientTick)
@@ -87,6 +87,11 @@ void UPowerupBaseComponent::OnPowerupTick()
 	if (NumOfTicks == 1)
 	{
 		// We've ran once, and that's all the component wanted. Expire.
+		if (!bHaveTimeBetweenTickAfterFinalTick)
+		{
+			TimeBetweenTicks = 0.1f;
+			bHaveTimeBetweenTickAfterFinalTick = true;
+		}
 		DetermineHowToExpire();
 		return;
 	}
@@ -136,7 +141,9 @@ void UPowerupBaseComponent::DetermineHowToExpire()
 		GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle_TimerTillExpire, this, &UPowerupBaseComponent::PowerupExpire, TimeBetweenTicks);
 		return;
 	}
-	
+
+	// At this point we've done multiple ticks,
+	// It should be fine to go straight into destroying the component
 	PowerupExpire();
 }
 

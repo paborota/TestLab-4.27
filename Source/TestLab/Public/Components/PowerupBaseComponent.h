@@ -82,6 +82,8 @@ private:
 	bool bAllowClientTick;
 	
 	// Whether or not the powerup should end as soon as the last tick completes, or until the tick lifetime afterwards
+	// Will be set to true during runtime, if NumOfTicks == 1, so there's a slight delay between
+	// component creation and destroy
 	bool bHaveTimeBetweenTickAfterFinalTick;
 
 	// Whether or not the powerup should stay alive until the actor, or component, is destroyed.
