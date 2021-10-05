@@ -38,8 +38,10 @@ protected:
 	UPROPERTY()
 	ASPowerupActor* PowerupInstance;
 	
-	FTimerHandle TimerHandle_RespawnPowerupInstance;
+	UPROPERTY(EditInstanceOnly, Category="PickupActor", meta = (ClampMin="0"))
+	float RespawnCooldown;
 
+	FTimerHandle TimerHandle_RespawnPowerupInstance;
 	void Respawn();
 
 	void VerifyActor(AActor* OtherActor);

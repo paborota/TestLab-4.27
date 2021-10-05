@@ -33,8 +33,8 @@ protected:
 	TSubclassOf<UPowerupBaseComponent> PowerupClass;
 
 	// If set to 0.0f, will never respawn
-	UPROPERTY(EditDefaultsOnly, Category="Powerups")
-	float PowerupSpawnCooldown;
+	//UPROPERTY(EditDefaultsOnly, Category="Powerups")
+	//float PowerupSpawnCooldown;
 
 	UPROPERTY(EditDefaultsOnly, Category="Powerups")
 	float VisualActorSpinSpeedMultiplier;
@@ -48,5 +48,5 @@ public:
 	
 	TSubclassOf<UActorComponent> GetPowerupClass() const { return PowerupClass; };
 
-	float GetPowerupSpawnCoolDown() const { return PowerupSpawnCooldown; };
+	// float GetPowerupSpawnCoolDown() const { return PowerupSpawnCooldown; };
 };
