@@ -4,7 +4,11 @@
 #include "ProtoActionCharacter.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
+
+#include "Components/CapsuleComponent.h"
+#include "Components/HealthComponent.h"
 #include "Components/WallJumpComponent.h"
+
 
 // Sets default values
 AProtoActionCharacter::AProtoActionCharacter()
@@ -32,7 +36,9 @@ AProtoActionCharacter::AProtoActionCharacter()
 	MaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
 	MaxSprintSpeed = MaxWalkSpeed * 2.0f;
 
-	WallJumpComp = CreateDefaultSubobject<UWallJumpComponent>(TEXT("WallJumpComponent"));
+	WallJumpComponent = CreateDefaultSubobject<UWallJumpComponent>(TEXT("WallJumpComponent"));
+
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
 	/*
 	WallCheckDistance = 65.0f;
@@ -64,6 +70,8 @@ AProtoActionCharacter::AProtoActionCharacter()
 	bPlayerHoldingClick = false;
 	HaltInputMultiplier = 1.0f;
 	HaltInterpSpeed = 4.5f;
+
+	bIsDead = false;
 }
 
 // Called when the game starts or when spawned
@@ -71,8 +79,29 @@ void AProtoActionCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	HealthComponent->OnHealthChanged.AddDynamic(this, &AProtoActionCharacter::OnHealthChanged);
+	
 	SpawnLocation = GetActorLocation();
 	SpawnRotation = GetActorRotation();
+}
+
+void AProtoActionCharacter::OnHealthChanged(UHealthComponent* HealthComp, float Health, float HealthDelta,
+	const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Took damage."));
+	if (Health <= 0.0f && !bIsDead)
+	{
+		HandleDeath();
+	}
+}
+
+void AProtoActionCharacter::HandleDeath()
+{
+	bIsDead = true;
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->GravityScale = 0.0f;
+	DisableInput(nullptr);
+	GetMesh()->SetVisibility(false);
 }
 
 // Called every frame
@@ -80,8 +109,13 @@ void AProtoActionCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (!ensure((WallJumpComp != nullptr))) return;
-	WallJumpComp->WallJumpTick(DeltaTime);
+	if (!ensure((WallJumpComponent != nullptr))) return;
+	WallJumpComponent->WallJumpTick(DeltaTime);
+
+	if (bIsDead)
+	{
+		
+	}
 }
 
 void AProtoActionCharacter::CheckOtherFallingUtil(const float& DeltaTime)
@@ -120,8 +154,8 @@ void AProtoActionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 
 void AProtoActionCharacter::MoveForward(const float Val)
 {
-	if (!ensure(WallJumpComp != nullptr)) return;
-	if (WallJumpComp->IsAttachedToWall() && !WallJumpComp->UsingOldWallJump())
+	if (!ensure(WallJumpComponent != nullptr)) return;
+	if (WallJumpComponent->IsAttachedToWall() && !WallJumpComponent->UsingOldWallJump())
 	{
 		return;
 	}
@@ -130,8 +164,8 @@ void AProtoActionCharacter::MoveForward(const float Val)
 
 void AProtoActionCharacter::MoveRight(const float Val)
 {
-	if (!ensure(WallJumpComp != nullptr)) return;
-	if (WallJumpComp->IsAttachedToWall() && !WallJumpComp->UsingOldWallJump())
+	if (!ensure(WallJumpComponent != nullptr)) return;
+	if (WallJumpComponent->IsAttachedToWall() && !WallJumpComponent->UsingOldWallJump())
 	{
 		return;
 	}
@@ -152,15 +186,15 @@ void AProtoActionCharacter::Jump()
 {
 	Super::Jump();
 
-	if (!ensure(WallJumpComp != nullptr)) return;
+	if (!ensure(WallJumpComponent != nullptr)) return;
 	UE_LOG(LogTemp, Warning, TEXT("WallJumpComp verified."));
-	if (WallJumpComp->CanWallJump())
+	if (WallJumpComponent->CanWallJump())
 	{
-		WallJumpComp->WallJump();
+		WallJumpComponent->WallJump();
 	}
 	else if (GetCharacterMovement()->IsFalling())
 	{
-		if (NumOfDoubleJumps > 0 && !WallJumpComp->UsingOldWallJump() || !bUsedDoubleJump && WallJumpComp->UsingOldWallJump())
+		if (NumOfDoubleJumps > 0 && !WallJumpComponent->UsingOldWallJump() || !bUsedDoubleJump && WallJumpComponent->UsingOldWallJump())
 		{
 			DoubleJump();
 		}
@@ -190,7 +224,7 @@ void AProtoActionCharacter::RightClick()
 
 void AProtoActionCharacter::DoubleJump()
 {
-	if (WallJumpComp->UsingOldWallJump())
+	if (WallJumpComponent->UsingOldWallJump())
 	{
 		DoubleJumpOLD();
 		return;
@@ -198,8 +232,8 @@ void AProtoActionCharacter::DoubleJump()
 
 	if (NumOfDoubleJumps > 0)
 	{
-		if (!ensure(WallJumpComp != nullptr)) return;
-		WallJumpComp->WallJump();
+		if (!ensure(WallJumpComponent != nullptr)) return;
+		WallJumpComponent->WallJump();
 		--NumOfDoubleJumps;
 	}
 }

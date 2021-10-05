@@ -10,6 +10,7 @@
 
 
 class UWallJumpComponent;
+class UHealthComponent;
 
 UENUM(BlueprintType)
 enum class EWallScanHit : uint8
@@ -39,7 +40,10 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
-	UWallJumpComponent* WallJumpComp;
+	UWallJumpComponent* WallJumpComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
+	UHealthComponent* HealthComponent;
 	
 	FVector SpawnLocation;
 	FRotator SpawnRotation;
@@ -143,6 +147,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
 	USceneComponent* MainWallLineCaster;
 
+	UFUNCTION()
+	void OnHealthChanged(UHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
+	void HandleDeath();
+
+	bool bIsDead;
+	
 	/*
 	bool CheckForNearbyWall();
 	bool CheckForward(const FCollisionQueryParams& Params);
