@@ -82,10 +82,10 @@ void ASPickupActor::ActivatePowerup(IPowerupInterface* OtherActor)
 	
 	AActor* Actor = Cast<AActor>(OtherActor);
 	if (!ensure(Actor != nullptr)) return;
+	
 	UActorComponent* Component = NewObject<UActorComponent>(Actor, PowerupInstance->GetPowerupClass());
-	if (Component)
-	{
-		Component->RegisterComponent();
-		UE_LOG(LogTemp, Warning, TEXT("Component Registered."));
-	}
+	if (!ensure(Component != nullptr)) return;
+	
+	Component->RegisterComponent();
+	UE_LOG(LogTemp, Warning, TEXT("Component Registered."));
 }

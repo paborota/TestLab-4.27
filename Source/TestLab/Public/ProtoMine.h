@@ -7,6 +7,7 @@
 #include "ProtoMine.generated.h"
 
 class USphereComponent;
+class URadialForceComponent;
 
 UCLASS()
 class TESTLAB_API AProtoMine : public AActor
@@ -26,6 +27,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category="Components")
 	USphereComponent* OuterSphereCollision;
+
+	UPROPERTY(EditDefaultsOnly, Category="Components")
+	URadialForceComponent* RadialForceComp;
 
 	UFUNCTION()
 	void OnBeginOverlap_OuterSphereCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);

@@ -99,6 +99,8 @@ void AProtoActionCharacter::HandleDeath()
 {
 	bIsDead = true;
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetEnableGravity(false);
+	GetMesh()->SetEnableGravity(false);
 	GetCharacterMovement()->GravityScale = 0.0f;
 	DisableInput(nullptr);
 	GetMesh()->SetVisibility(false);
@@ -110,7 +112,10 @@ void AProtoActionCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	
 	if (!ensure((WallJumpComponent != nullptr))) return;
-	WallJumpComponent->WallJumpTick(DeltaTime);
+	if (WallJumpComponent->IsAttachedToWall())
+	{
+		WallJumpComponent->WallJumpTick(DeltaTime);
+	}
 
 	if (bIsDead)
 	{
@@ -155,7 +160,7 @@ void AProtoActionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 void AProtoActionCharacter::MoveForward(const float Val)
 {
 	if (!ensure(WallJumpComponent != nullptr)) return;
-	if (WallJumpComponent->IsAttachedToWall() && !WallJumpComponent->UsingOldWallJump())
+	if (WallJumpComponent->IsAttachedToWall())
 	{
 		return;
 	}
@@ -165,7 +170,7 @@ void AProtoActionCharacter::MoveForward(const float Val)
 void AProtoActionCharacter::MoveRight(const float Val)
 {
 	if (!ensure(WallJumpComponent != nullptr)) return;
-	if (WallJumpComponent->IsAttachedToWall() && !WallJumpComponent->UsingOldWallJump())
+	if (WallJumpComponent->IsAttachedToWall())
 	{
 		return;
 	}
@@ -184,32 +189,41 @@ void AProtoActionCharacter::LookRight(const float Val)
 
 void AProtoActionCharacter::Jump()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Jump pressed."));
 	Super::Jump();
 
 	if (!ensure(WallJumpComponent != nullptr)) return;
 	UE_LOG(LogTemp, Warning, TEXT("WallJumpComp verified."));
-	if (WallJumpComponent->CanWallJump())
-	{
-		WallJumpComponent->WallJump();
-	}
-	else if (GetCharacterMovement()->IsFalling())
+	if (GetCharacterMovement()->IsFalling() && !WallJumpComponent->AttachToWall())
 	{
 		if (NumOfDoubleJumps > 0 && !WallJumpComponent->UsingOldWallJump() || !bUsedDoubleJump && WallJumpComponent->UsingOldWallJump())
 		{
 			DoubleJump();
 		}
 	}
-	bWantsToHover = true;
+	//bWantsToHover = true;
 }
 
 void AProtoActionCharacter::JumpReleased()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Jump released."));
+	if (!ensure(WallJumpComponent != nullptr)) return;
+	if (WallJumpComponent->IsAttachedToWall())
+	{
+		WallJumpComponent->DetachFromWall();
+		if (WallJumpComponent->CanWallJump())
+		{
+			WallJumpComponent->WallJump();
+		}
+	}
+	/*
 	bWantsToHover = false;
 	if (bStartedHovering)
 	{
 		bStartedHovering = false;
 		GetCharacterMovement()->GravityScale = DefaultGravityScale;
 	}
+	*/
 }
 
 void AProtoActionCharacter::RightClick()
@@ -399,458 +413,3 @@ void AProtoActionCharacter::ResetPlayer()
 	SetActorLocation(SpawnLocation);
 	SetActorRotation(SpawnRotation);
 }
-
-
-
-
-
-
-
-/*
-void AProtoActionCharacter::UsingNewWallJumpTick(const float& DeltaTime)
-{
-if (CheckForNearbyWall())
-{
-bAttachedToWall = true;
-//UE_LOG(LogTemp, Warning, TEXT("Validating CanWallJump."));
-ValidateCanWallJump();
-// Stop current movement, ONCE
-if (!bMovementStopped)
-{
-GetCharacterMovement()->StopMovementImmediately();
-GetCharacterMovement()->GravityScale = 0.1f;
-bMovementStopped = true;
-}
-else
-{
-// Start sliding down, getting progressively faster
-GetCharacterMovement()->GravityScale = FMath::InterpEaseIn(GetCharacterMovement()->GravityScale, DefaultGravityScale, DeltaTime * SlidingSpeedMultiplier, 2.0f);
-}
-}
-else
-{
-bTraceInfoCached = false;
-GetCharacterMovement()->GravityScale = DefaultGravityScale;
-CheckOtherFallingUtil(DeltaTime);
-bMovementStopped = false;
-}
-}
-
-void AProtoActionCharacter::ValidateCanWallJump()
-{
-// Check if players look direction is away from wall, if looking towards wall, don't allow to wall jump
-FVector PlayerLookLocation;
-FRotator PlayerLookAngle;
-GetController()->GetPlayerViewPoint(PlayerLookLocation, PlayerLookAngle);
-const float LookDirectionValidation = FVector::DotProduct(PlayerLookAngle.Vector(), WallJumpDirection);
-if (LookDirectionValidation > 0)
-{
-bCanWallJump = true;
-}
-}
-
-void AProtoActionCharacter::UsingOldWallJumpTick(const float& DeltaTime)
-{
-CheckForNearbyWall();
-			
-CheckOtherFallingUtil(DeltaTime);
-}
-*/
-
-/*
-void AProtoActionCharacter::WallJump()
-{
-	if (bUseOldWallJump)
-	{
-		WallJumpOLD();
-		return;
-	}
-
-	FVector LaunchVelocity;
-	CalcWallJumpVelocity(LaunchVelocity);
-
-	// Make sure velocity does not exceed the max sprint speed too greatly
-	LaunchVelocity = LaunchVelocity.GetClampedToMaxSize(MaxSprintSpeed * 1.8f);
-	LaunchCharacter(LaunchVelocity, true, true);
-	//UE_LOG(LogTemp, Warning, TEXT("%f"), LaunchVelocity.Size());
-}
-
-void AProtoActionCharacter::WallJumpOLD()
-{
-	FVector LaunchVelocity;
-	CalcWallJumpVelocity(LaunchVelocity);
-
-	// Make sure velocity does not exceed the max sprint speed too greatly
-	LaunchVelocity = LaunchVelocity.GetClampedToMaxSize(MaxSprintSpeed * 1.8f);
-	LaunchCharacter(LaunchVelocity, true, true);
-
-	// Reset everything
-	GetWorldTimerManager().ClearTimer(TimerHandle_ResetCachedVelocity);
-	ResetCachedInfo();
-	// DashReset(); // Uncomment if you want dashes to be reset on wall jumps
-	bUsedDoubleJump = false;
-}
-
-void AProtoActionCharacter::CalcWallJumpVelocity(FVector& LaunchVelocity)
-{
-	if (!bUseOldWallJump)
-	{
-		CalcVelocity(LaunchVelocity);
-	}
-	else
-	{
-		CalcWallJumpDirectionAfterRotationOLD(LaunchVelocity);
-		CalcVelocityOLD(LaunchVelocity);
-	}
-}
-
-FRotator AProtoActionCharacter::CalcWallJumpDirection(FVector& LaunchVelocity)
-{
-	FVector PlayerLookLocation;
-	FRotator PlayerLookAngle;
-	GetController()->GetPlayerViewPoint(PlayerLookLocation, PlayerLookAngle);
-	LaunchVelocity = PlayerLookAngle.Vector().GetSafeNormal();
-	return PlayerLookAngle;
-}
-
-void AProtoActionCharacter::CalcVelocity(FVector& LaunchVelocity)
-{
-	const FRotator PlayerLookAngle = CalcWallJumpDirection(LaunchVelocity);
-	LaunchVelocity *= WallJumpVelocity;
-
-	const FVector PlayerLookDirection = PlayerLookAngle.Vector();
-	const float ForwardPitchExponent = FVector::DotProduct(GetActorForwardVector(), PlayerLookDirection);
-	const float ForwardPitchMultiplier = 1.25f * (1.0f - FMath::Pow(0.2f, ForwardPitchExponent));
-	const FVector PlayerLookUpDirection = (PlayerLookDirection.Rotation() + FRotator(90.0f, 0.0f, 0.0f)).Vector();
-	LaunchVelocity += PlayerLookUpDirection * WallJumpUpwardsForce * ForwardPitchMultiplier;
-}
-
-//---------------------------------------------------------------------------------
-//---------------------------------------------------------------------------------
-//------------------------Old Wall Jump Calculations-------------------------------
-void AProtoActionCharacter::CalcWallJumpDirectionAfterRotationOLD(FVector& LaunchVelocity)
-{
-	const FVector VelocityDirectionNormalized = VelocityDirection.GetSafeNormal();
-	FVector WallNormalRightVector = (CachedHit.Normal.Rotation() + FRotator(0.0f, 90.0f, 0.0f)).Vector();
-
-	if (FVector::DotProduct(VelocityDirectionNormalized, WallNormalRightVector) < 0 )
-	{
-		WallNormalRightVector *= -1.0f;
-	}
-
-	const float ActorYawRotation = GetActorRotation().Yaw;
-	
-	float Delta = FMath::Fmod((FMath::Fmod((ActorYawRotation - WallNormalRightVector.Rotation().Yaw), 360.0f) + 540.0f), 360.0f) - 180.0f;
-	
-	// Exponent should not be higher than 1.0
-	const float Exponent = abs(Delta / 180.0f);
-	
-	// Rotation influence should be dampened based on how fast the character is moving
-	const float SpeedExponent = GetCharacterMovement()->Velocity.Size() / (MaxSprintSpeed * MaxWallJumpSpeedMultiplier);
-	const float DeltaRotationDampen = DeltaRotationClamp * -(1.0f - pow(.09f, SpeedExponent)) + 1.0f;
-	
-	const float DeltaMultiplier = DeltaRotationDampen * (1.0f - pow(.1f, Exponent));
-	
-	float OriginalDirectionInfluence = 1.0f - abs(FVector::DotProduct(VelocityDirectionNormalized, WallJumpDirection));
-	OriginalDirectionInfluence = 2.0f * pow(OriginalDirectionInfluence, 2.0f);
-	
-	Delta *= DeltaMultiplier * OriginalDirectionInfluence;
-
-	const float NewRotationYaw = VelocityDirectionNormalized.Rotation().Yaw + Delta;
-	const FRotator NewDirectionRotation = //UKismetMathLibrary::ComposeRotators(Delta, VelocityDirectionNormalized.Rotation());
-		FRotator(0.0f, NewRotationYaw, 0.0f);
-
-	FVector NewDirection = NewDirectionRotation.Vector();
-	NewDirection.Z = 0.0f;
-	VelocityDirection = NewDirection * VelocityDirection.Size();
-}
-
-void AProtoActionCharacter::CalcVelocityOLD(FVector& LaunchVelocity) const
-{
-	const FVector VelocityDirectionNormalized = VelocityDirection.GetSafeNormal();
-
-	const float AngleInfluenceUp = FMath::Abs(FVector::DotProduct(WallJumpDirection, VelocityDirectionNormalized));
-	const float AngleInfluence = 1.0f - AngleInfluenceUp;
-	const float AngleInfluenceExp = 1.6f;
-	
-	// Takes into account how perpendicular the players velocity is with the wall
-	const float VelocityAwayMultiplier = VelocityDirection.Size() * AngleInfluence * 0.8f;
-	// Takes into account how parallel the players velocity is with the wall
-	const float VelocityAwayMultiplierUp = VelocityDirection.Size() * AngleInfluenceUp * 1.35;
-
-	FVector VelocityAway = (WallJumpDirection * VelocityAwayMultiplier + WallJumpDirection * VelocityAwayMultiplierUp) * WallJumpVelocityAwayMultiplier;
-
-	if (VelocityAway.Size() < 200.0f)
-	{
-		// If for some reason the velocity pushing away from the wall is less than 150, set to 150
-		// No matter what we want the wall jump to push from the wall
-		VelocityAway.Normalize();
-		VelocityAway *= 200.0f;
-	}
-
-	const float VelocityMultiplier = pow(AngleInfluence, AngleInfluenceExp) + 1.0f;
-	const float VelocityUpMultiplier = 0.9f * pow(AngleInfluenceUp, AngleInfluenceExp * AngleInfluenceExp) + 1.1f;
-
-	FVector VelocityUp = GetActorUpVector() * WallJumpVelocityUp * VelocityUpMultiplier;
-	
-	LaunchVelocity = VelocityDirection * VelocityMultiplier								// Keep and slightly increase current momentum
-					+ VelocityAway														// Push player away from wall based on how perpendicular and parallel their velocity is with the wall
-					+ VelocityUp;	// Push player up based on how parallel their velocity is with the wall
-}
-//---------------------------------------------------------------------------------
-//---------------------------------------------------------------------------------
-//---------------------------------------------------------------------------------
-*/
-
-
-/*
-bool AProtoActionCharacter::CheckForNearbyWall()
-{
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
-	
-	bool bHitWall = false;
-
-	// Every wall check needs to be done, and if any of them returns true, then we must set bHitWall to true.
-	// Never set bHitWall back to false, as long as we hit a wall at least once, it must be true.
-	
-	if (CheckForward(Params)) bHitWall = true;
-	if (CheckBackward(Params)) bHitWall = true;
-	if (CheckRight(Params)) bHitWall = true;
-	if (CheckLeft(Params)) bHitWall = true;
-	if (CheckForwardRight(Params)) bHitWall = true;
-	if (CheckForwardRightForward(Params)) bHitWall = true;
-	if (CheckForwardRightRight(Params)) bHitWall = true;
-	if (CheckForwardLeft(Params)) bHitWall = true;
-	if (CheckForwardLeftForward(Params)) bHitWall = true;
-	if (CheckForwardLeftLeft(Params)) bHitWall = true;
-	if (CheckBackwardRight(Params)) bHitWall = true;
-	if (CheckBackwardRightBackward(Params)) bHitWall = true;
-	if (CheckBackwardRightRight(Params)) bHitWall = true;
-	if (CheckBackwardLeft(Params)) bHitWall = true;
-	if (CheckBackwardLeftBackward(Params)) bHitWall = true;
-	if (CheckBackwardLeftLeft(Params)) bHitWall = true;
-
-	return bHitWall;
-}
-
-bool AProtoActionCharacter::CheckForward(const FCollisionQueryParams& Params)
-{
-	return DoWallTrace(Params, GetActorForwardVector());
-}
-
-bool AProtoActionCharacter::CheckBackward(const FCollisionQueryParams& Params)
-{
-	return DoWallTrace(Params, -GetActorForwardVector());
-}
-
-bool AProtoActionCharacter::CheckRight(const FCollisionQueryParams& Params)
-{
-	return DoWallTrace(Params, GetActorRightVector());
-}
-
-bool AProtoActionCharacter::CheckLeft(const FCollisionQueryParams& Params)
-{
-	return DoWallTrace(Params, -GetActorRightVector());
-}
-
-bool AProtoActionCharacter::CheckForwardRight(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f);
-	const FVector BaseDirection = GetActorForwardVector() + GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-	
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckForwardRightForward(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f, -22.5f, 0.0f);
-	const FVector BaseDirection = GetActorForwardVector() + GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckForwardRightRight(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f, 22.5f, 0.0f);
-	const FVector BaseDirection = GetActorForwardVector() + GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckForwardLeft(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f);
-	const FVector BaseDirection = GetActorForwardVector() - GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-	
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckForwardLeftForward(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f, 22.5f, 0.0f);
-	const FVector BaseDirection = GetActorForwardVector() - GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckForwardLeftLeft(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f, -22.5f, 0.0f);
-	const FVector BaseDirection = GetActorForwardVector() - GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckBackwardRight(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f);
-	const FVector BaseDirection = -GetActorForwardVector() + GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-	
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckBackwardRightBackward(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f, 22.5f, 0.0f);
-	const FVector BaseDirection = -GetActorForwardVector() + GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-	
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckBackwardRightRight(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f, -22.5f, 0.0f);
-	const FVector BaseDirection = -GetActorForwardVector() + GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-	
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckBackwardLeft(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f);
-	const FVector BaseDirection = -GetActorForwardVector() - GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-	
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckBackwardLeftBackward(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f, -22.5f, 0.0f);
-	const FVector BaseDirection = -GetActorForwardVector() - GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-	
-	return DoWallTrace(Params, TraceDirection);
-}
-
-bool AProtoActionCharacter::CheckBackwardLeftLeft(const FCollisionQueryParams& Params)
-{
-	const FRotator RotateOffset = FRotator(0.0f, 22.5f, 0.0f);
-	const FVector BaseDirection = -GetActorForwardVector() - GetActorRightVector();
-	const FVector TraceDirection = GetTraceDirection(BaseDirection, RotateOffset);
-	
-	return DoWallTrace(Params, TraceDirection);
-}
-
-FVector AProtoActionCharacter::GetTraceDirection(const FVector& BaseDirection, const FRotator& RotateOffset)
-{
-	FVector NewTraceDirection = BaseDirection;
-	NewTraceDirection.Normalize();
-	NewTraceDirection = (NewTraceDirection.Rotation() + RotateOffset).Vector();
-	
-	return NewTraceDirection;
-}
-
-bool AProtoActionCharacter::DoWallTrace(const FCollisionQueryParams& Params, const FVector& TraceDirection)
-{
-	if (bUseOldWallJump)
-	{
-		return DoWallTraceOLD(Params, TraceDirection);
-	}
-	
-	const FVector TraceOrigin = MainWallLineCaster->GetComponentLocation();
-	const FVector TraceEnd = TraceOrigin + TraceDirection * WallCheckDistance;
-	FHitResult HitTemp;
-	if (GetWorld()->LineTraceSingleByChannel(HitTemp, TraceOrigin, TraceEnd, ECC_Visibility, Params))
-	{
-		if (!bTraceInfoCached)
-		{
-			CacheWallInfo(HitTemp);
-			//VelocityDirection = GetCharacterMovement()->Velocity;
-			bTraceInfoCached = true;
-			//UE_LOG(LogTemp, Log, TEXT("Info Cached."));
-			//UE_LOG(LogTemp, Warning, TEXT("%f"), VelocityDirection.Size());
-			return true;
-		}
-
-		
-
-		// Assuming we hit multiple things in a single frame
-		// Check which surface is closer
-		// Whichever surface is closer is the surface that we want to jump off of
-		
-		const float DistanceToHit = FVector::Distance(GetActorLocation(), CachedHit.Location);
-		const float DistanceToHitTemp = FVector::Distance(GetActorLocation(), HitTemp.Location);
-
-		if (DistanceToHit > DistanceToHitTemp)
-		{
-			CacheWallInfo(HitTemp);
-			UE_LOG(LogTemp, Log, TEXT("Info Overwritten."));
-		}
-		return true;
-	}
-	return false;
-}
-
-bool AProtoActionCharacter::DoWallTraceOLD(const FCollisionQueryParams& Params, const FVector& TraceDirection)
-{
-	const FVector TraceOrigin = MainWallLineCaster->GetComponentLocation();
-	const FVector TraceEnd = TraceOrigin + TraceDirection * WallCheckDistance;
-	FHitResult HitTemp;
-	if (GetWorld()->LineTraceSingleByChannel(HitTemp, TraceOrigin, TraceEnd, ECC_Visibility, Params))
-	{
-		bCanWallJump = true;
-		if (!bTraceInfoCached)
-		{
-			CacheWallInfo(HitTemp);
-			VelocityDirection = GetCharacterMovement()->Velocity;
-			VelocityDirection.Z = 0.0f;
-			bTraceInfoCached = true;
-			GetWorldTimerManager().SetTimer(TimerHandle_ResetCachedVelocity, this, &AProtoActionCharacter::ResetCachedInfo, VelocityCachedTimeLength);
-			UE_LOG(LogTemp, Log, TEXT("Info Cached."));
-			return true;
-		}
-		
-		// This code only gets called if there is hits on multiple line traces, or a hit during the cache timer
-		// Check which surface is closer
-		// Whichever surface is closer is the surface that we want to jump off of
-		
-		const float DistanceToHit = FVector::Distance(GetActorLocation(), CachedHit.Location);
-		const float DistanceToHitTemp = FVector::Distance(GetActorLocation(), HitTemp.Location);
-
-		if (DistanceToHit > DistanceToHitTemp)
-		{
-			CacheWallInfo(HitTemp);
-			UE_LOG(LogTemp, Log, TEXT("Info Overwritten."));
-		}
-		return true;
-	}
-	return false;
-}
-
-void AProtoActionCharacter::CacheWallInfo(const FHitResult& Hit)
-{
-	CachedHit = Hit;
-	WallJumpDirection = CachedHit.Normal;
-}
-*/

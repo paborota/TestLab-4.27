@@ -68,36 +68,6 @@ protected:
 	void ClickReleased();
 	void ResetGravityParams();
 
-	/*
-	void WallJump();
-	void WallJumpOLD();
-	void ValidateCanWallJump();
-	void CalcWallJumpVelocity(FVector& LaunchVelocity);
-	FRotator CalcWallJumpDirection(FVector& LaunchVelocity);
-	void CalcVelocity(FVector& LaunchVelocity);
-	void CalcWallJumpDirectionAfterRotationOLD(FVector& LaunchVelocity);
-	void CalcVelocityOLD(FVector& LaunchVelocity) const;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
-	bool bUseOldWallJump;
-	bool bMovementStopped;
-	FVector WallJumpDirection;
-	FVector VelocityDirection;
-	float MaxWallJumpSpeedMultiplier;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="bUseOldWallJump"))
-	float DeltaRotationClamp;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="bUseOldWallJump"))
-	float WallJumpVelocityAwayMultiplier;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="bUseOldWallJump"))
-	float WallJumpVelocityUp;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
-	float WallJumpVelocity;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
-	float WallJumpUpwardsForce;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
-	float SlidingSpeedMultiplier;
-	*/
-
 	virtual void Jump() override;
 	void DoubleJump();
 	void DoubleJumpOLD();
@@ -153,43 +123,6 @@ protected:
 	void HandleDeath();
 
 	bool bIsDead;
-	
-	/*
-	bool CheckForNearbyWall();
-	bool CheckForward(const FCollisionQueryParams& Params);
-	bool CheckBackward(const FCollisionQueryParams& Params);
-	bool CheckRight(const FCollisionQueryParams& Params);
-	bool CheckLeft(const FCollisionQueryParams& Params);
-	bool CheckForwardRight(const FCollisionQueryParams& Params);
-	bool CheckForwardRightForward(const FCollisionQueryParams& Params);
-	bool CheckForwardRightRight(const FCollisionQueryParams& Params);
-	bool CheckForwardLeft(const FCollisionQueryParams& Params);
-	bool CheckForwardLeftForward(const FCollisionQueryParams& Params);
-	bool CheckForwardLeftLeft(const FCollisionQueryParams& Params);
-	bool CheckBackwardRight(const FCollisionQueryParams& Params);
-	bool CheckBackwardRightBackward(const FCollisionQueryParams& Params);
-	bool CheckBackwardRightRight(const FCollisionQueryParams& Params);
-	bool CheckBackwardLeft(const FCollisionQueryParams& Params);
-	bool CheckBackwardLeftBackward(const FCollisionQueryParams& Params);
-	bool CheckBackwardLeftLeft(const FCollisionQueryParams& Params);
-	FVector GetTraceDirection(const FVector& BaseDirection, const FRotator& RotateOffset);
-	bool DoWallTrace(const FCollisionQueryParams& Params, const FVector& TraceDirection);
-	bool DoWallTraceOLD(const FCollisionQueryParams& Params, const FVector& TraceDirection);
-	void CacheWallInfo(const FHitResult& Hit);
-	bool bTraceInfoCached;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="bUseOldWallJump"))
-	float VelocityCachedTimeLength;
-	FTimerHandle TimerHandle_ResetCachedVelocity;
-	void ResetCachedInfo() { bTraceInfoCached = false; }
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Player")
-	float WallCheckDistance;
-	FHitResult CachedHit;
-	// EWallScanHit EWallHit;
-
-	void UsingNewWallJumpTick(const float& DeltaTime);
-	void UsingOldWallJumpTick(const float& DeltaTime);
-	*/
-	
 
 public:	
 	// Called every frame

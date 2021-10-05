@@ -45,28 +45,56 @@ void UWallJumpComponent::BeginPlay()
 	DefaultGravityScaleFromOwner = OwnerAsInterface->GetDefaultGravityScale();
 }
 
+bool UWallJumpComponent::AttachToWall()
+{
+	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
+	if (!ensure(OwnerCharacterMovement != nullptr)) return false;
+    if (GetOwner()->GetVelocity().Z < 0.0f && CheckForNearbyWall())
+    {
+    	OwnerCharacterMovement->StopMovementImmediately();
+    	OwnerCharacterMovement->GravityScale = 0.1f;
+    	bMovementStopped = true;
+    	bAttachedToWall = true;
+    	UE_LOG(LogTemp, Warning, TEXT("Attached to wall."));
+    	return true;
+    }
+	return false;
+}
+
+void UWallJumpComponent::DetachFromWall()
+{
+	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
+	if (!ensure(OwnerCharacterMovement != nullptr)) return;
+	OwnerCharacterMovement->GravityScale = DefaultGravityScaleFromOwner;
+	bTraceInfoCached = false;
+	bMovementStopped = false;
+	bAttachedToWall = false;
+	UE_LOG(LogTemp, Warning, TEXT("Detached from wall."));
+}
+
 void UWallJumpComponent::WallJumpTick(const float& DeltaTime)
 {
 	bCanWallJump = false;
-	bAttachedToWall = false;
-	if (!ensure(OwnerAsCharacter != nullptr)) return;
-	if (OwnerAsCharacter->GetCharacterMovement()->IsFalling())
+
+	UsingNewWallJumpTick(DeltaTime);
+}
+
+void UWallJumpComponent::UsingNewWallJumpTick(const float& DeltaTime)
+{
+	if (CheckForNearbyWall())
 	{
-		if (bUseOldWallJump)
-		{
-			UsingOldWallJumpTick(DeltaTime);
-		}
-		else
-		{
-			UsingNewWallJumpTick(DeltaTime);
-		}
+		UE_LOG(LogTemp, Warning, TEXT("Near wall."));
+		if (!ensure(OwnerAsCharacter != nullptr)) return;
+		OwnerAsCharacter->GetCharacterMovement()->GravityScale = FMath::InterpEaseIn(OwnerAsCharacter->GetCharacterMovement()->GravityScale, DefaultGravityScaleFromOwner, DeltaTime * SlidingSpeedMultiplier, 2.0f);
+		ValidateCanWallJump();
 	}
 	else
 	{
-		bTraceInfoCached = false;
+		DetachFromWall();
 	}
 }
 
+/*
 void UWallJumpComponent::UsingNewWallJumpTick(const float& DeltaTime)
 {
 	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
@@ -97,6 +125,7 @@ void UWallJumpComponent::UsingNewWallJumpTick(const float& DeltaTime)
 		bMovementStopped = false;
 	}
 }
+*/
 
 void UWallJumpComponent::ValidateCanWallJump()
 {
@@ -108,7 +137,7 @@ void UWallJumpComponent::ValidateCanWallJump()
 	FRotator PlayerLookAngle;
 	OwnerAsPawn->GetController()->GetPlayerViewPoint(PlayerLookLocation, PlayerLookAngle);
 	const float LookDirectionValidation = FVector::DotProduct(PlayerLookAngle.Vector(), WallJumpDirection);
-	if (LookDirectionValidation > 0)
+	if (LookDirectionValidation > -0.2f)
 	{
 		bCanWallJump = true;
 	}
@@ -278,6 +307,7 @@ void UWallJumpComponent::CalcVelocityOLD(FVector& LaunchVelocity) const
 
 bool UWallJumpComponent::CheckForNearbyWall()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Checking for nearby wall."));
 	AActor* Owner = GetOwner();
 	if (!ensure(Owner != nullptr)) return false;
 	FCollisionQueryParams Params;
@@ -467,8 +497,6 @@ bool UWallJumpComponent::DoWallTrace(const FCollisionQueryParams& Params, const 
 			bTraceInfoCached = true;
 			return true;
 		}
-
-		
 
 		// Assuming we hit multiple things in a single frame
 		// Check which surface is closer

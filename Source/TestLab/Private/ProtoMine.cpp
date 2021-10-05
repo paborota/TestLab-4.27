@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
+#include "PhysicsEngine/RadialForceComponent.h"
 
 // Sets default values
 AProtoMine::AProtoMine()
@@ -19,6 +20,12 @@ AProtoMine::AProtoMine()
 	OuterSphereCollision->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Overlap);
 	OuterSphereCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	OuterSphereCollision->SetupAttachment(RootComponent);
+
+	RadialForceComp = CreateDefaultSubobject<URadialForceComponent>(TEXT("RadialForceComp"));
+	RadialForceComp->Radius = 200.0f;
+	RadialForceComp->Falloff = RIF_Linear;
+	RadialForceComp->bIgnoreOwningActor = true;
+	RadialForceComp->SetupAttachment(RootComponent);
 	
 	TimeToDetonate = 2.0f;
 	BaseDamage = 1.0f;
@@ -69,5 +76,6 @@ void AProtoMine::Detonate()
 	TArray<AActor*> IgnoredActors;
 	IgnoredActors.Add(this);
 	UGameplayStatics::ApplyRadialDamage(GetWorld(), BaseDamage, GetActorLocation(), DamageRadius, nullptr, IgnoredActors, this, nullptr, true);
+	RadialForceComp->FireImpulse();
 	Destroy();
 }

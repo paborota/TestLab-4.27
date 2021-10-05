@@ -100,6 +100,9 @@ protected:
 public:	
 
 	void WallJumpTick(const float& DeltaTime);
+	
+	bool AttachToWall();
+	void DetachFromWall();
 
 	void WallJump();
 
