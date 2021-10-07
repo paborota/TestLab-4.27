@@ -60,6 +60,7 @@ AProtoActionCharacter::AProtoActionCharacter()
 
 	bIsDead = false;
 	SlowDownInterpSpeed = 2.0f;
+	RespawnInterpSpeed = 1.8;
 	MouseSlowDownInterpSpeed = 3.0f;
 }
 
@@ -72,6 +73,8 @@ void AProtoActionCharacter::BeginPlay()
 	
 	SpawnLocation = GetActorLocation();
 	SpawnRotation = GetActorRotation();
+	LastCheckpointStartingLocation = SpawnLocation;
+	LastCheckpointStartingRotation = SpawnRotation;
 }
 
 void AProtoActionCharacter::OnHealthChanged(UHealthComponent* HealthComp, float Health, float HealthDelta,
@@ -87,10 +90,11 @@ void AProtoActionCharacter::OnHealthChanged(UHealthComponent* HealthComp, float 
 void AProtoActionCharacter::HandleDeath()
 {
 	bIsDead = true;
+	Walk();
+	bWantsToSprintWhenLanded = false;
+	bWantsToSlowDown = true;
 	RespawnReminder(UnAlteredDeltaTime, GetWorld()->GetTimeSeconds());
-	//GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCapsuleComponent()->SetEnableGravity(false);
-	//GetMesh()->SetEnableGravity(false);
 	GetCharacterMovement()->GravityScale = 0.0f;
 	
 	GetMesh()->SetVisibility(false);
@@ -107,14 +111,18 @@ void AProtoActionCharacter::Tick(float DeltaTime)
 		WallJumpComponent->WallJumpTick(DeltaTime);
 	}
 
-	if (bIsDead)
+	if (bWantsToSlowDown)
 	{
-		// @TODO add death effect.
-		const float NewDiliation = FMath::FInterpTo(UGameplayStatics::GetGlobalTimeDilation(GetWorld()), 0.0f, UnAlteredDeltaTime, SlowDownInterpSpeed);
+		const float NewDiliation = FMath::FInterpTo(UGameplayStatics::GetGlobalTimeDilation(GetWorld()), 0.0f, UnAlteredDeltaTime, SlowDownInterpSpeed * 2.0f);
 		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), NewDiliation);
 
-		const float NewSens = FMath::FInterpTo(MouseSensitivity, 0.0f, UnAlteredDeltaTime, MouseSlowDownInterpSpeed);
+		const float NewSens = FMath::FInterpTo(MouseSensitivity, 0.0f, UnAlteredDeltaTime, MouseSlowDownInterpSpeed * 2.0f);
 		MouseSensitivity = NewSens;
+		if (UGameplayStatics::GetGlobalTimeDilation(GetWorld()) < 0.2f && !bIsDead)
+		{
+			bWantsToSlowDown = false;
+			Respawn();
+		}
 	}
 	else
 	{
@@ -426,16 +434,59 @@ void AProtoActionCharacter::ResetGravityParams()
 
 void AProtoActionCharacter::ResetPlayer()
 {
+	if (bIsResetting)
+	{
+		return;
+	}
+
+	bIsResetting = true;
+	if (bIsDead)
+	{
+		ResetFromDeath();
+		return;
+	}
+
+	bWantsToSlowDown = true;
+	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+	if (CameraManager)
+	{
+		CameraManager->StartCameraFade(0.0f, 1.0f, 0.43f, FLinearColor::Black, true);
+	}
+	ResetLevel();
+}
+
+void AProtoActionCharacter::ResetFromDeath()
+{
 	bIsDead = false;
 	GetCharacterMovement()->StopMovementImmediately();
-	SetActorLocation(SpawnLocation);
-	SetActorRotation(SpawnRotation);
-	
-	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
-	GetCapsuleComponent()->SetEnableGravity(true);
-	GetCharacterMovement()->GravityScale = DefaultGravityScale;
-	MouseSensitivity = DefaultMouseSensitivity;
-	
-	GetMesh()->SetVisibility(true);
 	DeleteRespawnReminder();
+	GetMesh()->SetVisibility(true);
+	GetCharacterMovement()->GravityScale = DefaultGravityScale;
+	
+	ResetLevel();
+}
+
+void AProtoActionCharacter::ResetLevel()
+{
+	// @TODO
+	bWantsToRespawn = true;
+}
+
+void AProtoActionCharacter::Respawn()
+{
+	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+	if (CameraManager)
+	{
+		CameraManager->StartCameraFade(1.0f, 0.0f, 0.43f, FLinearColor::Black, true);
+	}
+	SetActorLocation(LastCheckpointStartingLocation);
+	SetActorRotation(LastCheckpointStartingRotation);
+	MouseSensitivity = DefaultMouseSensitivity;
+	GetCapsuleComponent()->SetEnableGravity(true);
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
+	bIsResetting = false;
+	bWantsToRespawn = false;
+
+	if (!ensure(HealthComponent != nullptr)) return;
+	HealthComponent->ResetHealth();
 }

@@ -46,9 +46,13 @@ protected:
 	UHealthComponent* HealthComponent;
 	
 	FVector SpawnLocation;
+	FVector LastCheckpointStartingLocation;
 	FRotator SpawnRotation;
+	FRotator LastCheckpointStartingRotation;
 
 	void ResetPlayer();
+	void ResetFromDeath();
+	void ResetLevel();
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
 	float MouseSensitivity;
@@ -126,17 +130,26 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category="Death")
 	bool bIsDead;
+	bool bWantsToRespawn;
+	bool bWasDead;
 	float UnAlteredDeltaTime;
 
+	bool bWantsToSlowDown;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Death")
 	float SlowDownInterpSpeed;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Death")
 	float MouseSlowDownInterpSpeed;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Death")
+	float RespawnInterpSpeed;
 
+	bool bIsResetting;
+	
 	UFUNCTION(BlueprintImplementableEvent, Category="Death")
 	void RespawnReminder(const float& DeltaTime, const float& TimeOfDeath);
 	UFUNCTION(BlueprintImplementableEvent, Category="Death")
 	void DeleteRespawnReminder();
+
+	void Respawn();
 
 public:	
 	// Called every frame

@@ -32,7 +32,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FOnHealthChangedSignature OnHealthChanged;
-	
+
+	FORCEINLINE void ResetHealth() { CurrentHealth = DefaultHealth; }
 	FORCEINLINE float GetCurrentHealth() { return CurrentHealth; }
 	FORCEINLINE void AddHealth(const float& Val) { CurrentHealth += Val; }
 	
