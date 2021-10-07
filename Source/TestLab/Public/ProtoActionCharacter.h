@@ -52,6 +52,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
 	float MouseSensitivity;
+	float DefaultMouseSensitivity;
 
 	float DefaultGravityScale;
 	//float DefaultMaxAcceleration;
@@ -123,7 +124,19 @@ protected:
 
 	void HandleDeath();
 
+	UPROPERTY(BlueprintReadOnly, Category="Death")
 	bool bIsDead;
+	float UnAlteredDeltaTime;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Death")
+	float SlowDownInterpSpeed;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Death")
+	float MouseSlowDownInterpSpeed;
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Death")
+	void RespawnReminder(const float& DeltaTime, const float& TimeOfDeath);
+	UFUNCTION(BlueprintImplementableEvent, Category="Death")
+	void DeleteRespawnReminder();
 
 public:	
 	// Called every frame

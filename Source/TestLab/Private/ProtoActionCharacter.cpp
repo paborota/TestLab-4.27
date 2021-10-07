@@ -8,6 +8,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/WallJumpComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 
 // Sets default values
@@ -20,6 +21,7 @@ AProtoActionCharacter::AProtoActionCharacter()
 	MainWallLineCaster->SetupAttachment(RootComponent);
 
 	MouseSensitivity = 1.5f;
+	DefaultMouseSensitivity = MouseSensitivity;
 	MaxHoldingMeleeDuration = 1.5f;
 	HoldingMeleeDuration = 0.0f;
 	MaxHoldingHoverDuration = 2.5f;
@@ -39,21 +41,6 @@ AProtoActionCharacter::AProtoActionCharacter()
 	WallJumpComponent = CreateDefaultSubobject<UWallJumpComponent>(TEXT("WallJumpComponent"));
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
-
-	/*
-	WallCheckDistance = 65.0f;
-	bTraceInfoCached = false;
-	VelocityCachedTimeLength = .45f;
-	WallJumpVelocityUp = 450.0f;
-	WallJumpVelocityAwayMultiplier = 1.1f;
-	DeltaRotationClamp = .65f;
-	MaxWallJumpSpeedMultiplier = 1.8f;
-	bUseOldWallJump = false;
-	
-	WallJumpVelocity = 1200.0f;
-	WallJumpUpwardsForce = 400.0f;
-	SlidingSpeedMultiplier = 1.0f;
-	*/
 		
 	StartingNumberOfDoubleJumps = 2;
 	NumOfDoubleJumps = StartingNumberOfDoubleJumps;
@@ -72,6 +59,8 @@ AProtoActionCharacter::AProtoActionCharacter()
 	HaltInterpSpeed = 4.5f;
 
 	bIsDead = false;
+	SlowDownInterpSpeed = 2.0f;
+	MouseSlowDownInterpSpeed = 3.0f;
 }
 
 // Called when the game starts or when spawned
@@ -98,11 +87,12 @@ void AProtoActionCharacter::OnHealthChanged(UHealthComponent* HealthComp, float 
 void AProtoActionCharacter::HandleDeath()
 {
 	bIsDead = true;
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RespawnReminder(UnAlteredDeltaTime, GetWorld()->GetTimeSeconds());
+	//GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCapsuleComponent()->SetEnableGravity(false);
-	GetMesh()->SetEnableGravity(false);
+	//GetMesh()->SetEnableGravity(false);
 	GetCharacterMovement()->GravityScale = 0.0f;
-	DisableInput(nullptr);
+	
 	GetMesh()->SetVisibility(false);
 }
 
@@ -120,6 +110,15 @@ void AProtoActionCharacter::Tick(float DeltaTime)
 	if (bIsDead)
 	{
 		// @TODO add death effect.
+		const float NewDiliation = FMath::FInterpTo(UGameplayStatics::GetGlobalTimeDilation(GetWorld()), 0.0f, UnAlteredDeltaTime, SlowDownInterpSpeed);
+		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), NewDiliation);
+
+		const float NewSens = FMath::FInterpTo(MouseSensitivity, 0.0f, UnAlteredDeltaTime, MouseSlowDownInterpSpeed);
+		MouseSensitivity = NewSens;
+	}
+	else
+	{
+		UnAlteredDeltaTime = DeltaTime;
 	}
 }
 
@@ -164,6 +163,11 @@ void AProtoActionCharacter::MoveForward(const float Val)
 	{
 		return;
 	}
+
+	if (Val < 0.0f && GetCharacterMovement()->IsFalling())
+	{
+		return;
+	}
 	AddMovementInput(GetActorForwardVector() * Val * HaltInputMultiplier);
 }
 
@@ -174,6 +178,12 @@ void AProtoActionCharacter::MoveRight(const float Val)
 	{
 		return;
 	}
+
+	if (GetCharacterMovement()->IsFalling())
+	{
+		return;
+	}
+	
 	AddMovementInput(GetActorRightVector() * Val * HaltInputMultiplier);
 }
 
@@ -416,7 +426,16 @@ void AProtoActionCharacter::ResetGravityParams()
 
 void AProtoActionCharacter::ResetPlayer()
 {
+	bIsDead = false;
 	GetCharacterMovement()->StopMovementImmediately();
 	SetActorLocation(SpawnLocation);
 	SetActorRotation(SpawnRotation);
+	
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
+	GetCapsuleComponent()->SetEnableGravity(true);
+	GetCharacterMovement()->GravityScale = DefaultGravityScale;
+	MouseSensitivity = DefaultMouseSensitivity;
+	
+	GetMesh()->SetVisibility(true);
+	DeleteRespawnReminder();
 }
