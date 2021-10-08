@@ -42,10 +42,14 @@ protected:
 	void OnHit_InnerSphereCollision(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	
 	void Detonate();
+	bool bExploded;
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	float BaseDamage;
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	float DamageRadius;
 
+public:
+
+	void Respawn();
 };

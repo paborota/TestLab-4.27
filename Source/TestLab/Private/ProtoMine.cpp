@@ -71,11 +71,25 @@ void AProtoMine::OnHit_InnerSphereCollision(UPrimitiveComponent* HitComponent, A
 
 void AProtoMine::Detonate()
 {
+	if (bExploded) return;
+	
 	// Explode
 	UE_LOG(LogTemp, Warning, TEXT("Exploded."));
 	TArray<AActor*> IgnoredActors;
 	IgnoredActors.Add(this);
 	UGameplayStatics::ApplyRadialDamage(GetWorld(), BaseDamage, GetActorLocation(), DamageRadius, nullptr, IgnoredActors, this, nullptr, true);
 	RadialForceComp->FireImpulse();
-	Destroy();
+	bExploded = true;
+	StaticMeshComp->SetVisibility(false);
+	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// @TODO particle explosion effect
+}
+
+void AProtoMine::Respawn()
+{
+	if (!bExploded) return;
+	
+	bExploded = false;
+	StaticMeshComp->SetVisibility(true);
+	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }

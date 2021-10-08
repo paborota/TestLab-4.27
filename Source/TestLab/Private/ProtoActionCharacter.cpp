@@ -3,12 +3,17 @@
 
 #include "ProtoActionCharacter.h"
 
+#include "ProtoActionController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/GameModeBase.h"
+#include "Kismet/GameplayStatics.h"
+
+#include "Components/DashComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/WallJumpComponent.h"
-#include "Kismet/GameplayStatics.h"
+#include "CheckpointInterface.h"
 
 
 // Sets default values
@@ -19,6 +24,12 @@ AProtoActionCharacter::AProtoActionCharacter()
 
 	MainWallLineCaster = CreateDefaultSubobject<USceneComponent>(TEXT("MainWallLineCaster"));
 	MainWallLineCaster->SetupAttachment(RootComponent);
+
+	WallJumpComponent = CreateDefaultSubobject<UWallJumpComponent>(TEXT("WallJumpComponent"));
+
+	DashComponent = CreateDefaultSubobject<UDashComponent>(TEXT("DashComponent"));
+
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
 	MouseSensitivity = 1.5f;
 	DefaultMouseSensitivity = MouseSensitivity;
@@ -37,17 +48,10 @@ AProtoActionCharacter::AProtoActionCharacter()
 	
 	MaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
 	MaxSprintSpeed = MaxWalkSpeed * 2.0f;
-
-	WallJumpComponent = CreateDefaultSubobject<UWallJumpComponent>(TEXT("WallJumpComponent"));
-
-	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 		
 	StartingNumberOfDoubleJumps = 2;
 	NumOfDoubleJumps = StartingNumberOfDoubleJumps;
-
-	DashVelocity = 5000.0f;
-	DashTimeLength = .2f;
-	bDashedRecently = false;
+	
 	DoubleJumpVelocity = 600.0f;
 	bUsedDoubleJump = false;
 	bWantsToHover = false;
@@ -70,11 +74,11 @@ void AProtoActionCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	HealthComponent->OnHealthChanged.AddDynamic(this, &AProtoActionCharacter::OnHealthChanged);
-	
-	SpawnLocation = GetActorLocation();
-	SpawnRotation = GetActorRotation();
-	LastCheckpointStartingLocation = SpawnLocation;
-	LastCheckpointStartingRotation = SpawnRotation;
+
+	ICheckpointInterface* ControllerAsInterface  = Cast<ICheckpointInterface>(GetController());
+	if (!ControllerAsInterface) return;
+	UE_LOG(LogTemp, Warning, TEXT("Location stored."));
+	ControllerAsInterface->UpdateSpawnPoint(GetActorLocation(), GetActorRotation());
 }
 
 void AProtoActionCharacter::OnHealthChanged(UHealthComponent* HealthComp, float Health, float HealthDelta,
@@ -309,7 +313,8 @@ void AProtoActionCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 
 	ResetUsedDoubleJump();
-	DashReset();
+	if (ensure(DashComponent!= nullptr)) DashComponent->ResetDash();
+	
 	HoldingHoverDuration = 0.0f;
 	if (bWantsToSprintWhenLanded)
 	{
@@ -365,32 +370,9 @@ void AProtoActionCharacter::Walk()
 
 void AProtoActionCharacter::Dash()
 {
-	if (bDashedRecently)
-	{
-		return;
-	}
-	
-	FVector EyeLocation;
-	FRotator EyeRotation;
-	GetActorEyesViewPoint(EyeLocation, EyeRotation);
-	const FVector LaunchVelocity = EyeRotation.Vector() * DashVelocity;
-	LaunchCharacter(LaunchVelocity, true, true);
-	bDashedRecently = true;
-	
-	FTimerHandle TimerHandle_StopDash;
-	GetWorldTimerManager().SetTimer(TimerHandle_StopDash, this, &AProtoActionCharacter::StopDash, DashTimeLength);
-}
+	if (!ensure(DashComponent != nullptr)) return;
 
-void AProtoActionCharacter::StopDash()
-{
-	FVector CurrentDirection = GetCharacterMovement()->Velocity.GetSafeNormal();
-	float CurrentVDirectionVSUpDirection = FVector::DotProduct(CurrentDirection, GetActorUpVector());
-	float VelocityDampener = .15f;
-	if (CurrentVDirectionVSUpDirection < 0)
-	{
-		VelocityDampener = .85 * pow(-CurrentVDirectionVSUpDirection, 1.6) + VelocityDampener;
-	}
-	GetCharacterMovement()->Velocity = GetCharacterMovement()->Velocity * VelocityDampener;
+	DashComponent->Dash();
 }
 
 void AProtoActionCharacter::PlayerClicked()
@@ -452,7 +434,7 @@ void AProtoActionCharacter::ResetPlayer()
 	{
 		CameraManager->StartCameraFade(0.0f, 1.0f, 0.43f, FLinearColor::Black, true);
 	}
-	ResetLevel();
+	bWantsToRespawn = true;
 }
 
 void AProtoActionCharacter::ResetFromDeath()
@@ -462,25 +444,27 @@ void AProtoActionCharacter::ResetFromDeath()
 	DeleteRespawnReminder();
 	GetMesh()->SetVisibility(true);
 	GetCharacterMovement()->GravityScale = DefaultGravityScale;
-	
-	ResetLevel();
+	bWantsToRespawn = true;
 }
 
 void AProtoActionCharacter::ResetLevel()
 {
 	// @TODO
-	bWantsToRespawn = true;
+	
+	AProtoActionController* PC = Cast<AProtoActionController>(GetController());
+	if (!PC) return;
+	PC->RestartLevel();
 }
 
 void AProtoActionCharacter::Respawn()
 {
+	ResetLevel();
 	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	if (CameraManager)
 	{
 		CameraManager->StartCameraFade(1.0f, 0.0f, 0.43f, FLinearColor::Black, true);
 	}
-	SetActorLocation(LastCheckpointStartingLocation);
-	SetActorRotation(LastCheckpointStartingRotation);
+
 	MouseSensitivity = DefaultMouseSensitivity;
 	GetCapsuleComponent()->SetEnableGravity(true);
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);

@@ -40,6 +40,8 @@ void ASPickupActor::BeginPlay()
 
 void ASPickupActor::Respawn()
 {
+	if (PowerupInstance) return;
+	
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	
@@ -54,13 +56,13 @@ void ASPickupActor::OnSphereCompOverlap(UPrimitiveComponent* OverlappedComponent
 
 void ASPickupActor::VerifyActor(AActor* OtherActor)
 {
-	IPowerupInterface* Character = Cast<IPowerupInterface>(OtherActor);
-	if (!ensure(Character != nullptr)) return;
+	IPowerupInterface* CharacterAsInterface = Cast<IPowerupInterface>(OtherActor);
+	if (!ensure(CharacterAsInterface != nullptr)) return;
 	UE_LOG(LogTemp, Warning, TEXT("Player overlapped pickup actor."));
 	
 	if (!PowerupInstance) return;
 	
-	ActivatePowerup(Character);
+	ActivatePowerup(CharacterAsInterface);
 	if (RespawnCooldown > 0.0f)
 	{
 		GetWorldTimerManager().SetTimer(TimerHandle_RespawnPowerupInstance, this, &ASPickupActor::Respawn, RespawnCooldown);

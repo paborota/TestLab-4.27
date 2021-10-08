@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CheckpointInterface.h"
 #include "Components/WallJumpComponentInterface.h"
 #include "Components/Powerups/PowerupInterface.h"
 #include "GameFramework/Character.h"
@@ -11,6 +12,7 @@
 
 class UWallJumpComponent;
 class UHealthComponent;
+class UDashComponent;
 
 UENUM(BlueprintType)
 enum class EWallScanHit : uint8
@@ -27,7 +29,7 @@ enum class EWallScanHit : uint8
 };
 
 UCLASS()
-class TESTLAB_API AProtoActionCharacter : public ACharacter, public IPowerupInterface, public IWallJumpComponentInterface
+class TESTLAB_API AProtoActionCharacter : public ACharacter, public IPowerupInterface, public IWallJumpComponentInterface, public ICheckpointInterface
 {
 	GENERATED_BODY()
 
@@ -43,12 +45,10 @@ protected:
 	UWallJumpComponent* WallJumpComponent;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
+	UDashComponent* DashComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
 	UHealthComponent* HealthComponent;
-	
-	FVector SpawnLocation;
-	FVector LastCheckpointStartingLocation;
-	FRotator SpawnRotation;
-	FRotator LastCheckpointStartingRotation;
 
 	void ResetPlayer();
 	void ResetFromDeath();
@@ -59,7 +59,6 @@ protected:
 	float DefaultMouseSensitivity;
 
 	float DefaultGravityScale;
-	//float DefaultMaxAcceleration;
 
 	void MoveForward(const float Val);
 	void MoveRight(const float Val);
@@ -105,13 +104,6 @@ protected:
 	bool bWantsToSprintWhenLanded;
 	
 	void Dash();
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
-	float DashVelocity;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player")
-	float DashTimeLength;
-	bool bDashedRecently;
-	void StopDash();
-	void DashReset() { bDashedRecently = false; }
 
 	void InterpHaltMovement(const float& DeltaTime);
 	float HaltInterpSpeed;
