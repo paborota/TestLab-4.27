@@ -379,8 +379,10 @@ void AProtoActionCharacter::Walk()
 void AProtoActionCharacter::Dash()
 {
 	if (!ensure(DashComponent != nullptr)) return;
-
 	DashComponent->Dash();
+	
+	if (!ensure(WallJumpComponent != nullptr)) return;
+	WallJumpComponent->ResetWallParams();
 }
 
 void AProtoActionCharacter::PlayerClicked()
