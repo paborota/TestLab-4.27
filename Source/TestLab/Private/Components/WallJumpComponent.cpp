@@ -60,6 +60,7 @@ void UWallJumpComponent::TickComponent(float DeltaTime, ELevelTick Tick,
 {
 	Super::TickComponent(DeltaTime, Tick, ThisTickFunction);
 
+	UE_LOG(LogTemp, Warning, TEXT("Ticking."));
 	TimeAttachedToWall += DeltaTime;
 	if (TimeAttachedToWall >= MaxTimeCanBeAttachedToWall)
 	{
@@ -79,9 +80,9 @@ void UWallJumpComponent::AttachToWall()
 	if (bWasAlreadyAttachedToWall) return;
 	
 	bAttachedToWall = true;
-	OwnerCharacterMovement->StopMovementImmediately();
+	//OwnerCharacterMovement->StopMovementImmediately();
 	OwnerCharacterMovement->GravityScale = 0.2f;
-	OwnerCharacterMovement->Velocity *= VelocitySlowdownMultiplierWhenAttaching;
+	//OwnerCharacterMovement->Velocity *= VelocitySlowdownMultiplierWhenAttaching;
 	TimeAttachedToWall = 0.0f;
 	PrimaryComponentTick.SetTickFunctionEnable(true);
 	/*
@@ -108,6 +109,7 @@ void UWallJumpComponent::DetachFromWall()
 	bTraceInfoCached = false;
 	bMovementStopped = false;
 	bAttachedToWall = false;
+	bWasAlreadyAttachedToWall = true;
 	SlowDownMultiplierWhenAttached = 1.0f;
 	PrimaryComponentTick.SetTickFunctionEnable(false);
 	UE_LOG(LogTemp, Warning, TEXT("Detached from wall."));
@@ -188,7 +190,7 @@ void UWallJumpComponent::ValidateCanWallJump()
 	FRotator PlayerLookAngle;
 	OwnerAsPawn->GetController()->GetPlayerViewPoint(PlayerLookLocation, PlayerLookAngle);
 	const float LookDirectionValidation = FVector::DotProduct(PlayerLookAngle.Vector(), WallJumpDirection);
-	if (LookDirectionValidation > -0.2f)
+	if (LookDirectionValidation > -0.05f)
 	{
 		bCanWallJump = true;
 	}
@@ -277,25 +279,35 @@ void UWallJumpComponent::CalcWallJumpVelocity(FVector& LaunchVelocity)
 
 void UWallJumpComponent::CalcVelocity(FVector& LaunchVelocity)
 {
-	const FRotator PlayerLookAngle = CalcWallJumpDirection(LaunchVelocity);
-	LaunchVelocity *= WallJumpVelocity;
+	CalcWallJumpDirection(LaunchVelocity);
+	// @TODO Alter the velocity based on looking up, if looking up dampen.
 
-	const FVector PlayerLookDirection = PlayerLookAngle.Vector();
-	const float ForwardPitchExponent = FVector::DotProduct(CurrentTickForwardVector, PlayerLookDirection);
-	const float ForwardPitchMultiplier = 1.25f * (1.0f - FMath::Pow(0.2f, ForwardPitchExponent));
+	const FVector PlayerLookDirection = LaunchVelocity;
+	LaunchVelocity *= WallJumpVelocity;
+	if (!ensure(GetOwner() != nullptr)) return;
+	const float DifferenceFromUpExponent = FVector::DotProduct(GetOwner()->GetActorUpVector(), PlayerLookDirection);
+	if (DifferenceFromUpExponent > 0)
+	{
+		//const float DifferenceFromUpVelocityForwardMultiplier = -0.95f * (1.0f - FMath::Pow(0.01f, DifferenceFromUpExponent)) + 1.0f;
+		//const float DifferenceFromUpVelocityForwardMultiplier = FMath::Cos(1.57f * DifferenceFromUpExponent);
+		const float DifferenceFromUpVelocityForwardMultiplier = -FMath::Tan(.78f * pow(DifferenceFromUpExponent, 2)) + 1.0f;
+		LaunchVelocity *= DifferenceFromUpVelocityForwardMultiplier;
+	}
+	
+	const float DifferenceFromForwardExponent = FVector::DotProduct(CurrentTickForwardVector, PlayerLookDirection);
+	const float DifferenceFromForwardVelocityUpMultiplier = 1.25f * (1.0f - FMath::Pow(0.2f, DifferenceFromForwardExponent));
 	const FVector PlayerLookUpDirection = (PlayerLookDirection.Rotation() + FRotator(90.0f, 0.0f, 0.0f)).Vector();
-	LaunchVelocity += PlayerLookUpDirection * WallJumpUpwardsForce * ForwardPitchMultiplier;
+	LaunchVelocity += PlayerLookUpDirection * WallJumpUpwardsForce * DifferenceFromForwardVelocityUpMultiplier;
 }
 
-FRotator UWallJumpComponent::CalcWallJumpDirection(FVector& LaunchVelocity)
+void UWallJumpComponent::CalcWallJumpDirection(FVector& LaunchVelocity)
 {
 	APawn* OwnerAsPawn = Cast<APawn>(GetOwner());
-	if (!ensure(OwnerAsPawn != nullptr)) return FRotator(0.0f);
+	if (!ensure(OwnerAsPawn != nullptr)) return;
 	FVector PlayerLookLocation;
 	FRotator PlayerLookAngle;
 	OwnerAsPawn->GetController()->GetPlayerViewPoint(PlayerLookLocation, PlayerLookAngle);
 	LaunchVelocity = PlayerLookAngle.Vector().GetSafeNormal();
-	return PlayerLookAngle;
 }
 
 
