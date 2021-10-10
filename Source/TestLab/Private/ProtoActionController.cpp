@@ -3,6 +3,7 @@
 
 #include "ProtoActionController.h"
 
+#include "GameFramework/PawnMovementComponent.h"
 #include "TestLab/TestLabGameModeBase.h"
 
 
@@ -11,7 +12,8 @@ void AProtoActionController::RestartLevel()
 	//Super::RestartLevel();
 
 	if (GetPawn() == nullptr) return;
-	
+
+	GetPawn()->GetMovementComponent()->StopMovementImmediately();
 	GetPawn()->SetActorLocation(LastCheckpointLocation);
 	SetControlRotation(LastCheckpointRotation);
 	

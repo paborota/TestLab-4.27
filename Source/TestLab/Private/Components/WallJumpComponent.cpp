@@ -28,6 +28,9 @@ UWallJumpComponent::UWallJumpComponent()
 	WallJumpVelocity = 1200.0f;
 	WallJumpUpwardsForce = 400.0f;
 	SlidingSpeedMultiplier = 1.0f;
+
+	GravityScaleWhenAttaching = .2f;
+	VelocitySlowdownMultiplierWhenAttaching = .6f;
 }
 
 
@@ -51,8 +54,9 @@ void UWallJumpComponent::AttachToWall()
 	if (!ensure(OwnerCharacterMovement != nullptr)) return;
 	
 	bAttachedToWall = true;
-	OwnerCharacterMovement->StopMovementImmediately();
-	OwnerCharacterMovement->GravityScale = 0.1f;
+	//OwnerCharacterMovement->StopMovementImmediately();
+	OwnerCharacterMovement->GravityScale = 0.2f;
+	OwnerCharacterMovement->Velocity *= VelocitySlowdownMultiplierWhenAttaching;
 	/*
 	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
 	if (!ensure(OwnerCharacterMovement != nullptr)) return false;

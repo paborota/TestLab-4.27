@@ -34,23 +34,23 @@ protected:
 	void CalcVelocityOLD(FVector& LaunchVelocity) const;
 
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump")
 	bool bUseOldWallJump;
 	bool bMovementStopped;
 	FVector WallJumpDirection;
 	FVector VelocityDirection;
 	float MaxWallJumpSpeedMultiplier;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="bUseOldWallJump"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump", meta = (EditCondition="bUseOldWallJump"))
 	float DeltaRotationClamp;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="bUseOldWallJump"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump", meta = (EditCondition="bUseOldWallJump"))
 	float WallJumpVelocityAwayMultiplier;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="bUseOldWallJump"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump", meta = (EditCondition="bUseOldWallJump"))
 	float WallJumpVelocityUp;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump", meta = (EditCondition="!bUseOldWallJump"))
 	float WallJumpVelocity;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump", meta = (EditCondition="!bUseOldWallJump"))
 	float WallJumpUpwardsForce;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="!bUseOldWallJump"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump", meta = (EditCondition="!bUseOldWallJump"))
 	float SlidingSpeedMultiplier;
 
 	UPROPERTY()
@@ -80,11 +80,11 @@ protected:
 	bool DoWallTraceOLD(const FCollisionQueryParams& Params, const FVector& TraceDirection);
 	void CacheWallInfo(const FHitResult& Hit);
 	bool bTraceInfoCached;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (EditCondition="bUseOldWallJump"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump", meta = (EditCondition="bUseOldWallJump"))
 	float VelocityCachedTimeLength;
 	FTimerHandle TimerHandle_ResetCachedVelocity;
 	void ResetCachedInfo() { bTraceInfoCached = false; }
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Player")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump")
 	float WallCheckDistance;
 	FHitResult CachedHit;
 	// EWallScanHit EWallHit;
@@ -99,6 +99,10 @@ protected:
 
 	float MaxSprintSpeedFromOwner;
 	float DefaultGravityScaleFromOwner;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="WallJump")
+	float GravityScaleWhenAttaching;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="WallJump")
+	float VelocitySlowdownMultiplierWhenAttaching;
 	
 public:	
 

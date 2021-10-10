@@ -39,7 +39,7 @@ AProtoActionCharacter::AProtoActionCharacter()
 	HoldingHoverDuration = 0.0f;
 	DefaultGravityScale = 1.0f;
 	
-	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
+	GetCharacterMovement()->MaxWalkSpeed = 800.0f;
 	GetCharacterMovement()->JumpZVelocity = 450.0f;
 	GetCharacterMovement()->GravityScale = DefaultGravityScale;
 	GetCharacterMovement()->AirControl = 0.2f;
@@ -47,7 +47,7 @@ AProtoActionCharacter::AProtoActionCharacter()
 	GetCharacterMovement()->MaxAcceleration = 1024.0f;
 	
 	MaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
-	MaxSprintSpeed = MaxWalkSpeed * 2.0f;
+	MaxSprintSpeed = MaxWalkSpeed;
 		
 	StartingNumberOfDoubleJumps = 2;
 	NumOfDoubleJumps = StartingNumberOfDoubleJumps;
@@ -93,6 +93,8 @@ void AProtoActionCharacter::OnHealthChanged(UHealthComponent* HealthComp, float 
 
 void AProtoActionCharacter::HandleDeath()
 {
+	if (bIsResetting) return;
+	
 	bIsDead = true;
 	Walk();
 	bWantsToSprintWhenLanded = false;
@@ -191,12 +193,13 @@ void AProtoActionCharacter::MoveRight(const float Val)
 		return;
 	}
 
+	float NewVal = Val;
 	if (GetCharacterMovement()->IsFalling())
 	{
-		return;
+		NewVal = Val * 0.35f;
 	}
 	
-	AddMovementInput(GetActorRightVector() * Val * HaltInputMultiplier);
+	AddMovementInput(GetActorRightVector() * NewVal * HaltInputMultiplier);
 }
 
 void AProtoActionCharacter::LookUp(const float Val)
@@ -378,17 +381,17 @@ void AProtoActionCharacter::Dash()
 void AProtoActionCharacter::PlayerClicked()
 {
 	// wind up melee and slow gravity(?)
-	bPlayerHoldingClick = true;
-	GetCharacterMovement()->GravityScale = 0.05f;
+	//bPlayerHoldingClick = true;
+	//GetCharacterMovement()->GravityScale = 0.05f;
 }
 
 void AProtoActionCharacter::ClickReleased()
 {
 	// release melee and return gravity(?)
-	bPlayerHoldingClick = false;
+	//bPlayerHoldingClick = false;
 	
-	FTimerHandle TimerHandle_ResetGravityParams;
-	GetWorldTimerManager().SetTimer(TimerHandle_ResetGravityParams, this, &AProtoActionCharacter::ResetGravityParams, .1f);
+	//FTimerHandle TimerHandle_ResetGravityParams;
+	//GetWorldTimerManager().SetTimer(TimerHandle_ResetGravityParams, this, &AProtoActionCharacter::ResetGravityParams, .1f);
 }
 
 void AProtoActionCharacter::InterpHaltMovement(const float& DeltaTime)
