@@ -12,14 +12,17 @@ UWallJumpComponent::UWallJumpComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	WallCheckDistance = 65.0f;
 	bCanWallJump = false;
 	bAttachedToWall = false;
+	MaxTimeCanBeAttachedToWall = 2.5f;
 	bTraceInfoCached = false;
 	VelocityCachedTimeLength = .45f;
 	WallJumpVelocityUp = 450.0f;
+	HopVelocity = 400.0f;
 	WallJumpVelocityAwayMultiplier = 1.1f;
 	DeltaRotationClamp = .65f;
 	MaxWallJumpSpeedMultiplier = 1.8f;
@@ -31,6 +34,8 @@ UWallJumpComponent::UWallJumpComponent()
 
 	GravityScaleWhenAttaching = .2f;
 	VelocitySlowdownMultiplierWhenAttaching = .6f;
+	SlowDownMultiplierWhenAttached = 1.0f;
+	SlowDownInterpSpeed = 2.0f;
 }
 
 
@@ -46,17 +51,39 @@ void UWallJumpComponent::BeginPlay()
 	MainWallLineCaster = OwnerAsInterface->GetLineCasterRef();
 	MaxSprintSpeedFromOwner = OwnerAsInterface->GetMaxSprintSpeed();
 	DefaultGravityScaleFromOwner = OwnerAsInterface->GetDefaultGravityScale();
+
+	OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
+}
+
+void UWallJumpComponent::TickComponent(float DeltaTime, ELevelTick Tick,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, Tick, ThisTickFunction);
+
+	TimeAttachedToWall += DeltaTime;
+	if (TimeAttachedToWall >= MaxTimeCanBeAttachedToWall)
+	{
+		DetachFromWall();
+		bWasAlreadyAttachedToWall = true;
+		return;
+	}
+
+	SlowDownMultiplierWhenAttached = FMath::FInterpTo(SlowDownMultiplierWhenAttached, .1f, DeltaTime, SlowDownInterpSpeed);
+	OwnerCharacterMovement->Velocity *= SlowDownMultiplierWhenAttached;
 }
 
 void UWallJumpComponent::AttachToWall()
 {
-	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
 	if (!ensure(OwnerCharacterMovement != nullptr)) return;
+
+	if (bWasAlreadyAttachedToWall) return;
 	
 	bAttachedToWall = true;
-	//OwnerCharacterMovement->StopMovementImmediately();
+	OwnerCharacterMovement->StopMovementImmediately();
 	OwnerCharacterMovement->GravityScale = 0.2f;
 	OwnerCharacterMovement->Velocity *= VelocitySlowdownMultiplierWhenAttaching;
+	TimeAttachedToWall = 0.0f;
+	PrimaryComponentTick.SetTickFunctionEnable(true);
 	/*
 	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
 	if (!ensure(OwnerCharacterMovement != nullptr)) return false;
@@ -75,24 +102,29 @@ void UWallJumpComponent::AttachToWall()
 
 void UWallJumpComponent::DetachFromWall()
 {
-	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
 	if (!ensure(OwnerCharacterMovement != nullptr)) return;
+	
 	OwnerCharacterMovement->GravityScale = DefaultGravityScaleFromOwner;
 	bTraceInfoCached = false;
 	bMovementStopped = false;
 	bAttachedToWall = false;
+	SlowDownMultiplierWhenAttached = 1.0f;
+	PrimaryComponentTick.SetTickFunctionEnable(false);
 	UE_LOG(LogTemp, Warning, TEXT("Detached from wall."));
 }
 
 void UWallJumpComponent::WallJumpTick(const float& DeltaTime)
 {
 	bCanWallJump = false;
+	bCanHopUp = false;
 
 	UsingNewWallJumpTick(DeltaTime);
 }
 
 void UWallJumpComponent::UsingNewWallJumpTick(const float& DeltaTime)
 {
+	if (bWasAlreadyAttachedToWall) return;
+	
 	if (CheckForNearbyWall())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Near wall."));
@@ -160,6 +192,10 @@ void UWallJumpComponent::ValidateCanWallJump()
 	{
 		bCanWallJump = true;
 	}
+	else
+	{
+		bCanHopUp = true;
+	}
 }
 
 void UWallJumpComponent::UsingOldWallJumpTick(const float& DeltaTime)
@@ -186,6 +222,7 @@ void UWallJumpComponent::WallJump()
 	
 	if (!ensure(OwnerAsCharacter != nullptr)) return;
 	OwnerAsCharacter->LaunchCharacter(LaunchVelocity, true, true);
+	ResetWallParams();
 }
 
 void UWallJumpComponent::WallJumpOLD()
@@ -205,6 +242,24 @@ void UWallJumpComponent::WallJumpOLD()
 
 	if (!ensure(OwnerAsInterface != nullptr)) return;
 	OwnerAsInterface->ResetUsedDoubleJump();
+}
+
+void UWallJumpComponent::WallHop()
+{
+	if (bHasHopped) return;
+
+	if (!ensure(OwnerAsCharacter != nullptr)) return;
+
+	FVector LaunchVelocity = FVector(0.0f, 0.0f, HopVelocity);
+	OwnerAsCharacter->LaunchCharacter(LaunchVelocity, true, true);
+	bHasHopped = true;
+	bWasAlreadyAttachedToWall = false;
+}
+
+void UWallJumpComponent::ResetWallParams()
+{
+	bHasHopped = false;
+	bWasAlreadyAttachedToWall = false;
 }
 
 void UWallJumpComponent::CalcWallJumpVelocity(FVector& LaunchVelocity)

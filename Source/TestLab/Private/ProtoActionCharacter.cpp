@@ -248,6 +248,10 @@ void AProtoActionCharacter::JumpReleased()
 		{
 			WallJumpComponent->WallJump();
 		}
+		else if (WallJumpComponent->CanHopUp())
+		{
+			WallJumpComponent->WallHop();
+		}
 	}
 	else if (GetCharacterMovement()->IsFalling())
 	{
@@ -317,6 +321,7 @@ void AProtoActionCharacter::Landed(const FHitResult& Hit)
 
 	ResetUsedDoubleJump();
 	if (ensure(DashComponent!= nullptr)) DashComponent->ResetDash();
+	if (ensure(WallJumpComponent != nullptr)) WallJumpComponent->ResetWallParams();
 	
 	HoldingHoverDuration = 0.0f;
 	if (bWantsToSprintWhenLanded)

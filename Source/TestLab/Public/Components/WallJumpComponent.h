@@ -8,12 +8,14 @@
 
 
 class IWallJumpComponentInterface;
+class UCharacterMovementComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TESTLAB_API UWallJumpComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
+	
 public:	
 	// Sets default values for this component's properties
 	UWallJumpComponent();
@@ -24,6 +26,7 @@ protected:
 
 	IWallJumpComponentInterface* OwnerAsInterface;
 	ACharacter* OwnerAsCharacter;
+	UCharacterMovementComponent* OwnerCharacterMovement;
 	
 	void WallJumpOLD();
 	void ValidateCanWallJump();
@@ -89,10 +92,19 @@ protected:
 	FHitResult CachedHit;
 	// EWallScanHit EWallHit;
 	bool bCanWallJump;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WallJump")
+	float HopVelocity;
+	bool bCanHopUp;
+	bool bHasHopped;
 
 	void AttachToWall();
+	bool bCanAttachToWall;
+	bool bWasAlreadyAttachedToWall;
 	bool bAttachedToWall;
 	bool bWantsToGrabWall;
+	float TimeAttachedToWall;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="WallJump")
+	float MaxTimeCanBeAttachedToWall;
 
 	void UsingNewWallJumpTick(const float& DeltaTime);
 	void UsingOldWallJumpTick(const float& DeltaTime);
@@ -104,13 +116,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="WallJump")
 	float VelocitySlowdownMultiplierWhenAttaching;
 	
+	float SlowDownMultiplierWhenAttached;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="WallJump")
+	float SlowDownInterpSpeed;
+	
 public:	
 
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
 	void WallJumpTick(const float& DeltaTime);
 	
 	void DetachFromWall();
 
 	void WallJump();
+	void WallHop();
 
 	bool CanWallJump() const { return bCanWallJump; }
 	void SetCanWallJump(const bool& bNewVal) { bCanWallJump = bNewVal; }
@@ -120,6 +139,11 @@ public:
 
 	void SetWantsToGrabWall(const bool& bNewVal) { bWantsToGrabWall = bNewVal; }
 	bool GetWantsToGrabWall() const { return bWantsToGrabWall; }
+
+	bool CanHopUp() const { return bCanHopUp; }
+	// void SetCanHopUp(const bool& NewVal) { bCanHopUp = NewVal; }
+
+	void ResetWallParams();
 
 	bool UsingOldWallJump() const { return bUseOldWallJump; }
 };
