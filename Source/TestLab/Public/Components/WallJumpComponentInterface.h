@@ -27,7 +27,7 @@ public:
 	
 	virtual void CheckOtherFallingUtil(const float& DeltaTime) { return; }
 
-	virtual float GetMaxSprintSpeed() const { return 0.0f; }
+	virtual float GetMaxWalkSpeed() const { return 0.0f; }
 
 	virtual float GetDefaultGravityScale() const { return 1.0f; }
 

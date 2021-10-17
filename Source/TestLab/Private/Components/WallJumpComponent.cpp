@@ -49,7 +49,7 @@ void UWallJumpComponent::BeginPlay()
 	if (!ensure(OwnerAsInterface != nullptr)) return;
 
 	MainWallLineCaster = OwnerAsInterface->GetLineCasterRef();
-	MaxSprintSpeedFromOwner = OwnerAsInterface->GetMaxSprintSpeed();
+	MaxWalkSpeedFromOwner = OwnerAsInterface->GetMaxWalkSpeed();
 	DefaultGravityScaleFromOwner = OwnerAsInterface->GetDefaultGravityScale();
 
 	OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
@@ -220,7 +220,7 @@ void UWallJumpComponent::WallJump()
 	CalcWallJumpVelocity(LaunchVelocity);
 	if (!ensure(OwnerAsInterface != nullptr)) return;
 	// Make sure velocity does not exceed the max sprint speed too greatly
-	LaunchVelocity = LaunchVelocity.GetClampedToMaxSize(MaxSprintSpeedFromOwner * 1.8f);
+	LaunchVelocity = LaunchVelocity.GetClampedToMaxSize(MaxWalkSpeedFromOwner * 1.8f);
 	
 	if (!ensure(OwnerAsCharacter != nullptr)) return;
 	OwnerAsCharacter->LaunchCharacter(LaunchVelocity, true, true);
@@ -233,7 +233,7 @@ void UWallJumpComponent::WallJumpOLD()
 	CalcWallJumpVelocity(LaunchVelocity);
 	
 	// Make sure velocity does not exceed the max sprint speed too greatly
-	LaunchVelocity = LaunchVelocity.GetClampedToMaxSize(MaxSprintSpeedFromOwner * 1.8f);
+	LaunchVelocity = LaunchVelocity.GetClampedToMaxSize(MaxWalkSpeedFromOwner * 1.8f);
 
 	if (!ensure(OwnerAsCharacter != nullptr)) return;
 	OwnerAsCharacter->LaunchCharacter(LaunchVelocity, true, true);
@@ -333,7 +333,7 @@ void UWallJumpComponent::CalcWallJumpDirectionAfterRotationOLD(FVector& LaunchVe
 	const float Exponent = abs(Delta / 180.0f);
 	
 	// Rotation influence should be dampened based on how fast the character is moving
-	const float SpeedExponent = OwnerAsCharacter->GetCharacterMovement()->Velocity.Size() / (MaxSprintSpeedFromOwner * MaxWallJumpSpeedMultiplier);
+	const float SpeedExponent = OwnerAsCharacter->GetCharacterMovement()->Velocity.Size() / (MaxWalkSpeedFromOwner * MaxWallJumpSpeedMultiplier);
 	const float DeltaRotationDampen = DeltaRotationClamp * -(1.0f - pow(.09f, SpeedExponent)) + 1.0f;
 	
 	const float DeltaMultiplier = DeltaRotationDampen * (1.0f - pow(.1f, Exponent));

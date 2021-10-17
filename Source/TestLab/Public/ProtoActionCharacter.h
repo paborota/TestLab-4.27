@@ -92,16 +92,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (ClampMin="0"))
 	int32 StartingNumberOfDoubleJumps;
 	int32 NumOfDoubleJumps;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Jump", meta = (ClampMin="0"))
+	float AirControlSidewaysMultiplier;
 
 	void Shift();
 	void ShiftReleased();
 
-	void Sprint();
-	void Walk();
+	// void Sprint();
+	// void Walk();
 	float MaxWalkSpeed;
-	UPROPERTY(EditDefaultsOnly, Category="Player")
-	float MaxSprintSpeed;
-	bool bWantsToSprintWhenLanded;
+	// UPROPERTY(EditDefaultsOnly, Category="Player")
+	// float MaxSprintSpeed;
+	// bool bWantsToSprintWhenLanded;
 	
 	void Dash();
 
@@ -152,7 +154,7 @@ public:
 
 	virtual USceneComponent* GetLineCasterRef() const override { return MainWallLineCaster; }
 
-	virtual float GetMaxSprintSpeed() const override { return MaxSprintSpeed; }
+	virtual float GetMaxWalkSpeed() const override { return MaxWalkSpeed; }
 	
 	virtual float GetDefaultGravityScale() const override { return DefaultGravityScale; }
 	

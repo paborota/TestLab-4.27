@@ -109,7 +109,7 @@ protected:
 	void UsingNewWallJumpTick(const float& DeltaTime);
 	void UsingOldWallJumpTick(const float& DeltaTime);
 
-	float MaxSprintSpeedFromOwner;
+	float MaxWalkSpeedFromOwner;
 	float DefaultGravityScaleFromOwner;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="WallJump")
 	float GravityScaleWhenAttaching;

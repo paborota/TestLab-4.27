@@ -47,16 +47,18 @@ AProtoActionCharacter::AProtoActionCharacter()
 	GetCharacterMovement()->MaxAcceleration = 1024.0f;
 	
 	MaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
-	MaxSprintSpeed = MaxWalkSpeed;
+	// MaxSprintSpeed = MaxWalkSpeed;
 		
 	StartingNumberOfDoubleJumps = 2;
 	NumOfDoubleJumps = StartingNumberOfDoubleJumps;
 	
 	DoubleJumpVelocity = 600.0f;
 	bUsedDoubleJump = false;
+	AirControlSidewaysMultiplier = 0.35f;
+	
 	bWantsToHover = false;
 	bStartedHovering = false;
-	bWantsToSprintWhenLanded = false;
+	// bWantsToSprintWhenLanded = false;
 
 	bPlayerHoldingClick = false;
 	HaltInputMultiplier = 1.0f;
@@ -96,8 +98,8 @@ void AProtoActionCharacter::HandleDeath()
 	if (bIsResetting) return;
 	
 	bIsDead = true;
-	Walk();
-	bWantsToSprintWhenLanded = false;
+	//Walk();
+	// bWantsToSprintWhenLanded = false;
 	bWantsToSlowDown = true;
 	RespawnReminder(UnAlteredDeltaTime, GetWorld()->GetTimeSeconds());
 	GetCapsuleComponent()->SetEnableGravity(false);
@@ -196,7 +198,7 @@ void AProtoActionCharacter::MoveRight(const float Val)
 	float NewVal = Val;
 	if (GetCharacterMovement()->IsFalling())
 	{
-		NewVal = Val * 0.35f;
+		NewVal = Val * AirControlSidewaysMultiplier;
 	}
 	
 	AddMovementInput(GetActorRightVector() * NewVal * HaltInputMultiplier);
@@ -324,6 +326,7 @@ void AProtoActionCharacter::Landed(const FHitResult& Hit)
 	if (ensure(WallJumpComponent != nullptr)) WallJumpComponent->ResetWallParams();
 	
 	HoldingHoverDuration = 0.0f;
+	/*
 	if (bWantsToSprintWhenLanded)
 	{
 		Sprint();
@@ -332,27 +335,32 @@ void AProtoActionCharacter::Landed(const FHitResult& Hit)
 	{
 		Walk();
 	}
+	*/
 }
 
 void AProtoActionCharacter::Shift()
 {
-	bWantsToSprintWhenLanded = true;
+	/*
+	// bWantsToSprintWhenLanded = true;
 	if (GetCharacterMovement()->IsFalling())
 	{
 		return;
 	}
 	Sprint();
+	*/
 }
 
 void AProtoActionCharacter::ShiftReleased()
 {
+	/*
 	// Revert sprint and anything else that might need to be reverted
-	bWantsToSprintWhenLanded = false;
+	// bWantsToSprintWhenLanded = false;
 	if (GetCharacterMovement()->IsFalling())
 	{
 		return;
 	}
 	Walk();
+	*/
 }
 
 void AProtoActionCharacter::Ctrl()
@@ -366,6 +374,7 @@ void AProtoActionCharacter::CtrlReleased()
 	UnCrouch();
 }
 
+/*
 void AProtoActionCharacter::Sprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = MaxSprintSpeed;
@@ -375,6 +384,7 @@ void AProtoActionCharacter::Walk()
 {
 	GetCharacterMovement()->MaxWalkSpeed = MaxWalkSpeed;
 }
+*/
 
 void AProtoActionCharacter::Dash()
 {
