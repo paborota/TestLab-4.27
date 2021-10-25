@@ -24,6 +24,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Components")
 	UStaticMeshComponent* StaticMeshComp;
+
+	UPROPERTY(EditDefaultsOnly, Category="Components")
+	USphereComponent* InnerSphereCollision;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Components")
 	USphereComponent* OuterSphereCollision;

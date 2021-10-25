@@ -13,6 +13,13 @@ AProtoMine::AProtoMine()
 {
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComp"));
 	RootComponent = StaticMeshComp;
+
+	InnerSphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("InnerSphereCollision"));
+	InnerSphereCollision->SetSphereRadius(165.0f);
+	InnerSphereCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+	InnerSphereCollision->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Block);
+	InnerSphereCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	InnerSphereCollision->SetupAttachment(RootComponent);
 	
 	OuterSphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("OuterSphereCollision"));
 	OuterSphereCollision->SetSphereRadius(200.0f);
@@ -37,7 +44,7 @@ void AProtoMine::BeginPlay()
 {
 	Super::BeginPlay();
 
-	StaticMeshComp->OnComponentHit.AddDynamic(this, &AProtoMine::OnHit_InnerSphereCollision);
+	InnerSphereCollision->OnComponentHit.AddDynamic(this, &AProtoMine::OnHit_InnerSphereCollision);
 	
 	OuterSphereCollision->OnComponentBeginOverlap.AddDynamic(this, &AProtoMine::OnBeginOverlap_OuterSphereCollision);
 	OuterSphereCollision->OnComponentEndOverlap.AddDynamic(this, &AProtoMine::OnEndOverlap_OuterSphereCollision);
