@@ -15,11 +15,13 @@ UPowerupBaseComponent::UPowerupBaseComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	NumOfTicks = 1;
-	TimeBetweenTicks = 0.1f;
+	TimeBetweenTicks = 0.5f;
 	TicksProcessed = 0;
 
 	bValuesModified = false;
 	bHaveTimeBetweenTickAfterFinalTick = false;
+	if (NumOfTicks == 1)
+		bHaveTimeBetweenTickAfterFinalTick = true;
 	bAllowClientTick = false;
 	bKeepAliveUntilDestroyed = false;
 
@@ -84,17 +86,12 @@ void UPowerupBaseComponent::OnPowerupTick()
 		return;
 	}
 	
-	// if (NumOfTicks == 1)
-	// {
-	// 	// We've ran once, and that's all the component wanted. Expire.
-	// 	if (!bHaveTimeBetweenTickAfterFinalTick)
-	// 	{
-	// 		TimeBetweenTicks = 0.1f;
-	// 		bHaveTimeBetweenTickAfterFinalTick = true;
-	// 	}
-	// 	DetermineHowToExpire();
-	// 	return;
-	// }
+	if (NumOfTicks == 1)
+	{
+	 	// We've ran once, and that's all the component wanted. Expire.
+	 	DetermineHowToExpire();
+		return;
+	}
 	
 	++TicksProcessed;
 	if (TicksProcessed >= NumOfTicks)

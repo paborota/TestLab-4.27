@@ -44,7 +44,7 @@ protected:
 	
 	// Time inbetween ticks or how long the only tick stays alive
 	// Smallest value allowed is 0.1
-	// Set to 0.1 by default
+	// Set to 0.5 by default
 	UPROPERTY(EditDefaultsOnly, meta=(ClampMin="0.1"))
 	float TimeBetweenTicks;
 
