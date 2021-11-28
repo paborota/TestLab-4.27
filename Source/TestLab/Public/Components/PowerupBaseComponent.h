@@ -39,11 +39,13 @@ protected:
 	// 1 is the lowest this can be set.
 	// Set to 1 by default.
 	// DISREGARDED IF bLastUntilDestroyed is set to TRUE
+	UPROPERTY(EditDefaultsOnly, meta=(ClampMin="1"))
 	int32 NumOfTicks;
 	
 	// Time inbetween ticks or how long the only tick stays alive
-	// Smallest value allowed is 0.01
-	// Set to 0.01 by default
+	// Smallest value allowed is 0.1
+	// Set to 0.1 by default
+	UPROPERTY(EditDefaultsOnly, meta=(ClampMin="0.1"))
 	float TimeBetweenTicks;
 
 	// To be used only by the server to determine how the powerup should behave
@@ -82,8 +84,6 @@ private:
 	bool bAllowClientTick;
 	
 	// Whether or not the powerup should end as soon as the last tick completes, or until the tick lifetime afterwards
-	// Will be set to true during runtime, if NumOfTicks == 1, so there's a slight delay between
-	// component creation and destroy
 	bool bHaveTimeBetweenTickAfterFinalTick;
 
 	// Whether or not the powerup should stay alive until the actor, or component, is destroyed.
@@ -94,6 +94,8 @@ private:
 
 	void ModifyValues(const float& Multiplier);
 	//void ModifyValues(const FString& NewFString);
+
+	int32 GetNumOfTicks() const { return NumOfTicks; }
 	
 	void PowerupExpire();
 };

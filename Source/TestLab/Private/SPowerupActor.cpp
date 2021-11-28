@@ -23,7 +23,7 @@ ASPowerupActor::ASPowerupActor()
 	PointLightComp->SetRelativeLocation(FVector(0.0f, 0.0f, 90.0f));
 	PointLightComp->CastShadows = false;
 	PointLightComp->SetupAttachment(RootComponent);
-
+	
 	VisualActorSpinSpeedMultiplier = 15.0f;
 }
 
@@ -32,9 +32,19 @@ void ASPowerupActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!PowerupClass)
+	if (!PowerupClass && !InstantPowerupClass)
 	{
 		UE_LOG(LogTemp, Error, TEXT("There is currently no powerup class selected for this powerup actor."));
+	}
+}
+
+void ASPowerupActor::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (InstantPowerupClass)
+	{
+		InstantPowerupComponent = Cast<UInstantPowerupBaseComponent>(NewObject<UActorComponent>(this, InstantPowerupClass));
 	}
 }
 
@@ -44,4 +54,22 @@ void ASPowerupActor::Tick(float DeltaTime)
 
 	float RotationMultiplier = DeltaTime * VisualActorSpinSpeedMultiplier + GetActorRotation().Yaw;
 	SetActorRotation(FRotator(0.0f, RotationMultiplier, 0.0f));
+}
+
+bool ASPowerupActor::HasValidPowerupClass() const
+{
+	if (PowerupClass || InstantPowerupClass)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void ASPowerupActor::ActivatePowerup(IPowerupInterface* ActorToPowerup)
+{
+	if (ensure(ActorToPowerup) && ensure(InstantPowerupComponent))
+	{
+		InstantPowerupComponent->ActivatePowerup(ActorToPowerup);
+	}
 }

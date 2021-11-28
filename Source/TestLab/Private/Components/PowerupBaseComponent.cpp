@@ -84,17 +84,17 @@ void UPowerupBaseComponent::OnPowerupTick()
 		return;
 	}
 	
-	if (NumOfTicks == 1)
-	{
-		// We've ran once, and that's all the component wanted. Expire.
-		if (!bHaveTimeBetweenTickAfterFinalTick)
-		{
-			TimeBetweenTicks = 0.1f;
-			bHaveTimeBetweenTickAfterFinalTick = true;
-		}
-		DetermineHowToExpire();
-		return;
-	}
+	// if (NumOfTicks == 1)
+	// {
+	// 	// We've ran once, and that's all the component wanted. Expire.
+	// 	if (!bHaveTimeBetweenTickAfterFinalTick)
+	// 	{
+	// 		TimeBetweenTicks = 0.1f;
+	// 		bHaveTimeBetweenTickAfterFinalTick = true;
+	// 	}
+	// 	DetermineHowToExpire();
+	// 	return;
+	// }
 	
 	++TicksProcessed;
 	if (TicksProcessed >= NumOfTicks)

@@ -74,11 +74,19 @@ void ASPickupActor::VerifyActor(AActor* OtherActor)
 
 void ASPickupActor::ActivatePowerup(IPowerupInterface* OtherActor)
 {
-    if (!PowerupInstance->GetPowerupClass())
+    if (!PowerupInstance->HasValidPowerupClass())
     {
     	UE_LOG(LogTemp, Error, TEXT("This powerup was missing it's powerup class, cannot be registered."));
     	return;
     }
+	
+	if (PowerupInstance->GetInstantPowerupClass())
+	{
+		// If this is true then we know this is an instant-use powerup.
+		PowerupInstance->ActivatePowerup(OtherActor);
+		UE_LOG(LogTemp, Warning, TEXT("Instant triggered."))
+		return;
+	}
 	
 	AActor* Actor = Cast<AActor>(OtherActor);
 	if (!ensure(Actor != nullptr)) return;

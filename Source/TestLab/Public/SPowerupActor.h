@@ -3,12 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/InstantPowerupBaseComponent.h"
 #include "Components/PowerupBaseComponent.h"
 #include "GameFramework/Actor.h"
 #include "SPowerupActor.generated.h"
 
 class ASCharacter;
 class UPointLightComponent;
+class UInstantDoubleJumpCharge;
 
 UCLASS()
 class TESTLAB_API ASPowerupActor : public AActor
@@ -22,19 +24,23 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	virtual void PostInitializeComponents() override;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
 	UStaticMeshComponent* StaticMeshComp;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
 	UPointLightComponent* PointLightComp;
+
+	UPROPERTY(VisibleAnywhere)
+	UInstantPowerupBaseComponent* InstantPowerupComponent;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Powerups")
 	TSubclassOf<UPowerupBaseComponent> PowerupClass;
 
-	// If set to 0.0f, will never respawn
-	//UPROPERTY(EditDefaultsOnly, Category="Powerups")
-	//float PowerupSpawnCooldown;
+	UPROPERTY(EditDefaultsOnly, Category="Powerups")
+	TSubclassOf<UInstantPowerupBaseComponent> InstantPowerupClass;
 
 	UPROPERTY(EditDefaultsOnly, Category="Powerups")
 	float VisualActorSpinSpeedMultiplier;
@@ -46,7 +52,14 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 	
-	TSubclassOf<UActorComponent> GetPowerupClass() const { return PowerupClass; };
+	bool HasValidPowerupClass() const;
 
+	TSubclassOf<UActorComponent> GetInstantPowerupClass() const { return InstantPowerupClass; }
+
+	TSubclassOf<UActorComponent> GetPowerupClass() const { return PowerupClass; }
+
+	// Only gets called when the powerup is an instant-use
+	void ActivatePowerup(IPowerupInterface* ActorToPowerup);
+	
 	// float GetPowerupSpawnCoolDown() const { return PowerupSpawnCooldown; };
 };
