@@ -34,11 +34,12 @@ void ASPickupActor::BeginPlay()
 	if (GetLocalRole() == ROLE_Authority)
 	{
 		SphereComp->OnComponentBeginOverlap.AddDynamic(this, &ASPickupActor::OnSphereCompOverlap);
-		Respawn();
+		// Respawn();
+		SpawnPowerup();
 	}
 }
 
-void ASPickupActor::Respawn()
+void ASPickupActor::SpawnPowerup()
 {
 	if (PowerupInstance) return;
 	
@@ -46,6 +47,14 @@ void ASPickupActor::Respawn()
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	
 	PowerupInstance = GetWorld()->SpawnActor<ASPowerupActor>(PowerupClass, GetTransform(), SpawnParams);
+}
+
+void ASPickupActor::RespawnPowerup()
+{
+	if (!PowerupInstance) return;
+
+	PowerupInstance->SetActorHiddenInGame(false);
+	SphereComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
 void ASPickupActor::OnSphereCompOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -65,11 +74,11 @@ void ASPickupActor::VerifyActor(AActor* OtherActor)
 	ActivatePowerup(CharacterAsInterface);
 	if (RespawnCooldown > 0.0f)
 	{
-		GetWorldTimerManager().SetTimer(TimerHandle_RespawnPowerupInstance, this, &ASPickupActor::Respawn, RespawnCooldown);
+		GetWorldTimerManager().SetTimer(TimerHandle_RespawnPowerupInstance, this, &ASPickupActor::RespawnPowerup, RespawnCooldown);
 	}
-				
-	PowerupInstance->Destroy();
-	PowerupInstance = nullptr;
+
+	PowerupInstance->SetActorHiddenInGame(true);
+	SphereComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void ASPickupActor::ActivatePowerup(IPowerupInterface* OtherActor)

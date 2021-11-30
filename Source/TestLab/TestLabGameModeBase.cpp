@@ -26,6 +26,6 @@ void ATestLabGameModeBase::RespawnObjects()
 	}
 	for (TActorIterator<ASPickupActor> PickupPtr(GetWorld()); PickupPtr; ++PickupPtr)
 	{
-		PickupPtr->Respawn();
+		PickupPtr->RespawnPowerup();
 	}
 }
