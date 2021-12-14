@@ -30,6 +30,9 @@ protected:
 	
 	void WallJumpOLD();
 	void ValidateCanWallJump();
+	void CheckIfShouldUseLeftHand();
+	bool bLeftHandDetermined;
+	bool bUsingLeftHand;
 	void CalcWallJumpVelocity(FVector& LaunchVelocity);
 	void CalcWallJumpDirection(FVector& LaunchVelocity);
 	void CalcVelocity(FVector& LaunchVelocity);

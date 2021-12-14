@@ -155,6 +155,10 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Animation")
 	void UpdateIsAttachedToWall(const bool bIsAttached);
+	UFUNCTION(BlueprintImplementableEvent, Category="Animation")
+	void UpdateCanWallJump(const bool bCanWallJump);
+	UFUNCTION(BlueprintImplementableEvent, Category="Animation")
+	void UpdateUsingLeftHand(const bool bIsUsingLeftHand);
 
 public:	
 	// Called every frame
@@ -165,8 +169,10 @@ public:
 
 	virtual USceneComponent* GetLineCasterRef() const override { return MainWallLineCaster; }
 
-	virtual void SetIsAttachedToWall(const bool bIsAttached) override { UpdateIsAttachedToWall(bIsAttached); };
-
+	virtual void SetIsAttachedToWall(const bool bIsAttached) override { UpdateIsAttachedToWall(bIsAttached); }
+	virtual void SetCanWallJump(const bool bCanWallJump) override { UpdateCanWallJump(bCanWallJump); }
+	virtual void SetUsingLeftHand(const bool bIsUsingLeftHand) override { UpdateUsingLeftHand(bIsUsingLeftHand); }
+	
 	virtual float GetMaxWalkSpeed() const override { return MaxWalkSpeed; }
 	
 	virtual float GetDefaultGravityScale() const override { return DefaultGravityScale; }

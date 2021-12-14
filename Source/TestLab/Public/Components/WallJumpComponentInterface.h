@@ -26,6 +26,8 @@ public:
 	virtual USceneComponent* GetLineCasterRef() const { return nullptr; }
 
 	virtual void SetIsAttachedToWall(const bool bIsAttached) { return; }
+	virtual void SetCanWallJump(const bool bCanWallJump) { return; }
+	virtual void SetUsingLeftHand(const bool bIsUsingLeftHand) { return; }
 	
 	virtual void CheckOtherFallingUtil(const float& DeltaTime) { return; }
 

@@ -18,6 +18,7 @@ UWallJumpComponent::UWallJumpComponent()
 	WallCheckDistance = 65.0f;
 	bCanWallJump = false;
 	bAttachedToWall = false;
+	bLeftHandDetermined = false;
 	MaxTimeCanBeAttachedToWall = 2.5f;
 	bTraceInfoCached = false;
 	VelocityCachedTimeLength = .45f;
@@ -110,6 +111,7 @@ void UWallJumpComponent::DetachFromWall()
 	
 	bTraceInfoCached = false;
 	bMovementStopped = false;
+	bLeftHandDetermined = false;
 	bAttachedToWall = false;
 	OwnerAsInterface->SetIsAttachedToWall(bAttachedToWall);
 	bWasAlreadyAttachedToWall = true;
@@ -193,14 +195,46 @@ void UWallJumpComponent::ValidateCanWallJump()
 	FRotator PlayerLookAngle;
 	OwnerAsPawn->GetController()->GetPlayerViewPoint(PlayerLookLocation, PlayerLookAngle);
 	const float LookDirectionValidation = FVector::DotProduct(PlayerLookAngle.Vector(), WallJumpDirection);
+	UE_LOG(LogTemp, Error, TEXT("%f"), LookDirectionValidation)
 	if (LookDirectionValidation > -0.05f)
 	{
 		bCanWallJump = true;
+		OwnerAsInterface->SetCanWallJump(true);
+		CheckIfShouldUseLeftHand();
 	}
 	else
 	{
 		bCanHopUp = true;
+		OwnerAsInterface->SetCanWallJump(false);
 	}
+}
+
+void UWallJumpComponent::CheckIfShouldUseLeftHand()
+{
+	FVector OwnerForwardDirection = OwnerAsCharacter->GetActorForwardVector();
+	// FVector WallRightDirection = FRotator(0.0f, 0.0f, 90.0f).RotateVector(WallJumpDirection);
+	FVector WallRightDirection = (WallJumpDirection.Rotation() + FRotator(0.0f, 90.0f, 0.0f)).Vector();
+	float LookDirectionCheck = FVector::DotProduct(OwnerForwardDirection, WallRightDirection);
+	UE_LOG(LogTemp, Error, TEXT("LookDirectionCheck: %f"), LookDirectionCheck);
+	
+	if (!bLeftHandDetermined)
+	{
+		if (LookDirectionCheck > 0)
+			bUsingLeftHand = true;
+		else
+			bUsingLeftHand = false;
+		
+		bLeftHandDetermined = true;
+	}
+	else
+	{
+		if (LookDirectionCheck > 0.1f)
+			bUsingLeftHand = true;
+		else if (LookDirectionCheck < -0.1f)
+			bUsingLeftHand = false;
+	}
+	
+	OwnerAsInterface->SetUsingLeftHand(bUsingLeftHand);
 }
 
 void UWallJumpComponent::UsingOldWallJumpTick(const float& DeltaTime)
