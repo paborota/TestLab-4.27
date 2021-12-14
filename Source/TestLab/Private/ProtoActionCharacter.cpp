@@ -5,6 +5,7 @@
 
 #include "ProtoActionController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Camera/CameraComponent.h"
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/GameModeBase.h"
@@ -21,6 +22,10 @@ AProtoActionCharacter::AProtoActionCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
+	CameraComponent->SetupAttachment(RootComponent);
+	GetMesh()->SetupAttachment(CameraComponent);
 
 	MainWallLineCaster = CreateDefaultSubobject<USceneComponent>(TEXT("MainWallLineCaster"));
 	MainWallLineCaster->SetupAttachment(RootComponent);
@@ -207,11 +212,13 @@ void AProtoActionCharacter::MoveRight(const float Val)
 void AProtoActionCharacter::LookUp(const float Val)
 {
 	AddControllerPitchInput(Val * MouseSensitivity);
+	StoreLookUpVal(Val);
 }
 
 void AProtoActionCharacter::LookRight(const float Val)
 {
 	AddControllerYawInput(Val * MouseSensitivity);
+	StoreLookRightVal(-Val);
 }
 
 void AProtoActionCharacter::Jump()

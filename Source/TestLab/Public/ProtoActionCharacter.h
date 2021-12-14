@@ -13,6 +13,7 @@
 class UWallJumpComponent;
 class UHealthComponent;
 class UDashComponent;
+class UCameraComponent;
 
 UENUM(BlueprintType)
 enum class EWallScanHit : uint8
@@ -42,6 +43,9 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
+	UCameraComponent* CameraComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
 	UWallJumpComponent* WallJumpComponent;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Components")
@@ -64,6 +68,10 @@ protected:
 	void MoveRight(const float Val);
 	void LookUp(const float Val);
 	void LookRight(const float Val);
+	UFUNCTION(BlueprintImplementableEvent, Category="Animation")
+	void StoreLookUpVal(const float Val);
+	UFUNCTION(BlueprintImplementableEvent, Category="Animation")
+	void StoreLookRightVal(const float Val);
 	
 	void PlayerClicked();
 	bool bPlayerHoldingClick;
@@ -145,6 +153,9 @@ protected:
 
 	void Respawn();
 
+	UFUNCTION(BlueprintImplementableEvent, Category="Animation")
+	void UpdateIsAttachedToWall(const bool bIsAttached);
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -153,6 +164,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual USceneComponent* GetLineCasterRef() const override { return MainWallLineCaster; }
+
+	virtual void SetIsAttachedToWall(const bool bIsAttached) override { UpdateIsAttachedToWall(bIsAttached); };
 
 	virtual float GetMaxWalkSpeed() const override { return MaxWalkSpeed; }
 	

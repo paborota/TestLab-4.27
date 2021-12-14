@@ -24,6 +24,8 @@ class TESTLAB_API IWallJumpComponentInterface
 public:
 
 	virtual USceneComponent* GetLineCasterRef() const { return nullptr; }
+
+	virtual void SetIsAttachedToWall(const bool bIsAttached) { return; }
 	
 	virtual void CheckOtherFallingUtil(const float& DeltaTime) { return; }
 

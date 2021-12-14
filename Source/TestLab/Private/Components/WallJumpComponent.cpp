@@ -80,6 +80,7 @@ void UWallJumpComponent::AttachToWall()
 	if (bWasAlreadyAttachedToWall) return;
 	
 	bAttachedToWall = true;
+	OwnerAsInterface->SetIsAttachedToWall(bAttachedToWall);
 	//OwnerCharacterMovement->StopMovementImmediately();
 	OwnerCharacterMovement->GravityScale = 0.2f;
 	//OwnerCharacterMovement->Velocity *= VelocitySlowdownMultiplierWhenAttaching;
@@ -106,9 +107,11 @@ void UWallJumpComponent::DetachFromWall()
 	if (!ensure(OwnerCharacterMovement != nullptr)) return;
 	
 	OwnerCharacterMovement->GravityScale = DefaultGravityScaleFromOwner;
+	
 	bTraceInfoCached = false;
 	bMovementStopped = false;
 	bAttachedToWall = false;
+	OwnerAsInterface->SetIsAttachedToWall(bAttachedToWall);
 	bWasAlreadyAttachedToWall = true;
 	SlowDownMultiplierWhenAttached = 1.0f;
 	PrimaryComponentTick.SetTickFunctionEnable(false);
