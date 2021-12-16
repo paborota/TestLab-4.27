@@ -82,25 +82,9 @@ void UWallJumpComponent::AttachToWall()
 	
 	bAttachedToWall = true;
 	OwnerAsInterface->SetIsAttachedToWall(bAttachedToWall);
-	//OwnerCharacterMovement->StopMovementImmediately();
 	OwnerCharacterMovement->GravityScale = 0.2f;
-	//OwnerCharacterMovement->Velocity *= VelocitySlowdownMultiplierWhenAttaching;
 	TimeAttachedToWall = 0.0f;
 	PrimaryComponentTick.SetTickFunctionEnable(true);
-	/*
-	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
-	if (!ensure(OwnerCharacterMovement != nullptr)) return false;
-    if (CheckForNearbyWall())
-    {
-    	OwnerCharacterMovement->StopMovementImmediately();
-    	OwnerCharacterMovement->GravityScale = 0.1f;
-    	bMovementStopped = true;
-    	bAttachedToWall = true;
-    	UE_LOG(LogTemp, Warning, TEXT("Attached to wall."));
-    	return true;
-    }
-	return false;
-	*/
 }
 
 void UWallJumpComponent::DetachFromWall()
@@ -151,39 +135,6 @@ void UWallJumpComponent::UsingNewWallJumpTick(const float& DeltaTime)
 		DetachFromWall();
 	}
 }
-
-/*
-void UWallJumpComponent::UsingNewWallJumpTick(const float& DeltaTime)
-{
-	UCharacterMovementComponent* OwnerCharacterMovement = (Cast<ACharacter>(GetOwner()))->GetCharacterMovement();
-	if (!ensure(OwnerCharacterMovement != nullptr)) return;
-	if (CheckForNearbyWall())
-	{
-		// Stop current movement, ONCE
-		if (!bMovementStopped)
-		{
-			OwnerCharacterMovement->StopMovementImmediately();
-			OwnerCharacterMovement->GravityScale = 0.1f;
-			bMovementStopped = true;
-		}
-		else
-		{
-			// Start sliding down, getting progressively faster
-			OwnerCharacterMovement->GravityScale = FMath::InterpEaseIn(OwnerCharacterMovement->GravityScale, DefaultGravityScaleFromOwner, DeltaTime * SlidingSpeedMultiplier, 2.0f);
-		}
-		bAttachedToWall = true;
-		ValidateCanWallJump();
-	}
-	else
-	{
-		bTraceInfoCached = false;
-		OwnerCharacterMovement->GravityScale = DefaultGravityScaleFromOwner;
-		if (!ensure(OwnerAsInterface != nullptr)) return;
-		OwnerAsInterface->CheckOtherFallingUtil(DeltaTime);
-		bMovementStopped = false;
-	}
-}
-*/
 
 void UWallJumpComponent::ValidateCanWallJump()
 {
@@ -325,8 +276,6 @@ void UWallJumpComponent::CalcVelocity(FVector& LaunchVelocity)
 	const float DifferenceFromUpExponent = FVector::DotProduct(GetOwner()->GetActorUpVector(), PlayerLookDirection);
 	if (DifferenceFromUpExponent > 0)
 	{
-		//const float DifferenceFromUpVelocityForwardMultiplier = -0.95f * (1.0f - FMath::Pow(0.01f, DifferenceFromUpExponent)) + 1.0f;
-		//const float DifferenceFromUpVelocityForwardMultiplier = FMath::Cos(1.57f * DifferenceFromUpExponent);
 		const float DifferenceFromUpVelocityForwardMultiplier = -FMath::Tan(.78f * pow(DifferenceFromUpExponent, 2)) + 1.0f;
 		LaunchVelocity *= DifferenceFromUpVelocityForwardMultiplier;
 	}
@@ -419,9 +368,9 @@ void UWallJumpComponent::CalcVelocityOLD(FVector& LaunchVelocity) const
 	if (!ensure(Owner != nullptr)) return;
 	FVector VelocityUp = Owner->GetActorUpVector() * WallJumpVelocityUp * VelocityUpMultiplier;
 	
-	LaunchVelocity = VelocityDirection * VelocityMultiplier								// Keep and slightly increase current momentum
-					+ VelocityAway														// Push player away from wall based on how perpendicular and parallel their velocity is with the wall
-					+ VelocityUp;	// Push player up based on how parallel their velocity is with the wall
+	LaunchVelocity = VelocityDirection * VelocityMultiplier				// Keep and slightly increase current momentum
+					+ VelocityAway										// Push player away from wall based on how perpendicular and parallel their velocity is with the wall
+					+ VelocityUp;										// Push player up based on how parallel their velocity is with the wall
 }
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
