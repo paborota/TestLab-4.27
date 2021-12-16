@@ -228,9 +228,9 @@ void UWallJumpComponent::CheckIfShouldUseLeftHand()
 	}
 	else
 	{
-		if (LookDirectionCheck > 0.1f)
+		if (LookDirectionCheck > 0.1f && !bUsingLeftHand)
 			bUsingLeftHand = true;
-		else if (LookDirectionCheck < -0.1f)
+		else if (LookDirectionCheck < -0.1f && bUsingLeftHand)
 			bUsingLeftHand = false;
 	}
 	
